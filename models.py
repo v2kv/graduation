@@ -1,7 +1,8 @@
 from db import db
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
-class Admin(db.Model):
+class Admin(UserMixin, db.Model):
     __tablename__ = 'admins'
     admin_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -13,8 +14,11 @@ class Admin(db.Model):
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def get_id(self):
+        return str(self.admin_id)
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -27,3 +31,6 @@ class User(db.Model):
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def get_id(self):
+        return str(self.user_id)

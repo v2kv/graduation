@@ -2,7 +2,7 @@ from flask import Blueprint, request, render_template, flash, redirect, url_for
 from flask_login import login_user, logout_user, login_required
 from db import db
 from models import Admin, User
-from werkzeug.security import check_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Blueprints
 index_bp = Blueprint('index', __name__)
@@ -20,12 +20,13 @@ def admin_register():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+        password_hash = generate_password_hash(password)
 
         if Admin.query.filter((Admin.username == username) | (Admin.email == email)).first():
             flash('Username or email already exists!', 'danger')
             return redirect(url_for('admin.admin_register'))
 
-        new_admin = Admin(username=username, email=email, password_hash=password)
+        new_admin = Admin(username=username, email=email, password_hash=password_hash)
         db.session.add(new_admin)
         db.session.commit()
 
@@ -41,7 +42,7 @@ def admin_login():
         password = request.form['password']
 
         admin = Admin.query.filter_by(username=username).first()
-        if admin and check_password_hash(admin.password_hash, password):
+        if admin and admin.verify_password(password):
             login_user(admin)
             flash('Login successful!', 'success')
             return redirect(url_for('admin.admin_dashboard'))
@@ -59,12 +60,13 @@ def user_register():
         last_name = request.form['last_name']
         email = request.form['email']
         password = request.form['password']
+        password_hash = generate_password_hash(password)
 
         if User.query.filter((User.username == username) | (User.user_email == email)).first():
             flash('Username or email already exists!', 'danger')
             return redirect(url_for('user.user_register'))
 
-        new_user = User(username=username, first_name=first_name, last_name=last_name, user_email=email, password_hash=password)
+        new_user = User(username=username, first_name=first_name, last_name=last_name, user_email=email, password_hash=password_hash)
         db.session.add(new_user)
         db.session.commit()
 
@@ -80,7 +82,7 @@ def user_login():
         password = request.form['password']
 
         user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password_hash, password):
+        if user and user.verify_password(password):
             login_user(user)
             flash('Login successful!', 'success')
             return redirect(url_for('user.user_dashboard'))

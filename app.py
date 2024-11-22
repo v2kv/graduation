@@ -1,7 +1,7 @@
 from flask import Flask
 from config import Config
 from db import db
-from routes import index_bp, admin_bp, user_bp
+from routes import index_bp,admin_bp, user_bp
 from flask_login import LoginManager
 from dotenv import load_dotenv
 
@@ -15,7 +15,6 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'user.user_login'
-
 
 @login_manager.user_loader
 def load_user(user_id):
