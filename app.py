@@ -1,7 +1,7 @@
 from flask import Flask
 from config import Config
 from db import db
-from routes import index_bp,admin_bp, user_bp
+from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp
 from flask_login import LoginManager
 from dotenv import load_dotenv
 
@@ -25,6 +25,9 @@ def load_user(user_id):
 app.register_blueprint(index_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(user_bp)
+app.register_blueprint(item_bp)
+app.register_blueprint(cart_bp)
+app.register_blueprint(order_bp)
 
 if __name__ == '__main__':
     with app.app_context():

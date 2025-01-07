@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ item.item_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <img src="{{ item.images[0].image_url }}" class="img-fluid" alt="{{ item.item_name }}">
+        </div>
+        <div class="col-md-6">
+            <h1>{{ item.item_name }}</h1>
+            <p>{{ item.item_description }}</p>
+            <p>Price: {{ item.item_price }}</p>
+            <form action="{{ url_for('cart.add_to_cart', item_id=item.item_id) }}" method="post">
+                <button type="submit" class="btn btn-primary">Add to Cart</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

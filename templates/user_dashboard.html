@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+
+{% block title %}User Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mt-5">User Dashboard</h1>
+    <p>Welcome, {{ current_user.username }}!</p>
+    <ul class="list-group">
+        <li class="list-group-item"><a href="{{ url_for('order.order_list') }}">My Orders</a></li>
+        <li class="list-group-item"><a href="{{ url_for('cart.cart') }}">My Cart</a></li>
+        <li class="list-group-item"><a href="#">My Profile</a></li>
+        <li class="list-group-item"><a href="#">Change Password</a></li>
+        <li class="list-group-item"><a href="{{ url_for('user.user_logout') }}">Logout</a></li>
+    </ul>
+</div>
+{% endblock %}

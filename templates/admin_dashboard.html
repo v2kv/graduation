@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mt-5">Admin Dashboard</h1>
+    <p>Welcome, {{ current_user.username }}!</p>
+    <ul class="list-group">
+        <li class="list-group-item"><a href="#">Manage Users</a></li>
+        <li class="list-group-item"><a href="#">Manage Products</a></li>
+        <li class="list-group-item"><a href="#">Manage Orders</a></li>
+        <li class="list-group-item"><a href="#">Manage Categories</a></li>
+        <li class="list-group-item"><a href="{{ url_for('admin.admin_logout') }}">Logout</a></li>
+    </ul>
+</div>
+{% endblock %}
