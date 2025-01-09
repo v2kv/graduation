@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, flash, redirect, url_for
+from flask import Blueprint, request, render_template, flash, redirect, url_for, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from db import db
 from models import Admin, User, Item, ShoppingCart, CartItem, Order
@@ -17,8 +17,12 @@ def index():
     return render_template('index.html')
 
 # Admin Routes
-@admin_bp.route('/admin/register', methods=['GET', 'POST'])
-def admin_register():
+@admin_bp.route('/admin/register/<secret_token>', methods=['GET', 'POST'])
+def admin_register(secret_token):
+    if secret_token != current_app.config['ADMIN_REGISTRATION_TOKEN']:
+        flash('Invalid registration token!', 'danger')
+        return redirect(url_for('index.index'))
+
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
@@ -27,7 +31,7 @@ def admin_register():
 
         if Admin.query.filter((Admin.username == username) | (Admin.email == email)).first():
             flash('Username or email already exists!', 'danger')
-            return redirect(url_for('admin.admin_register'))
+            return redirect(url_for('admin.admin_register', secret_token=secret_token))
 
         new_admin = Admin(username=username, email=email, password_hash=password_hash)
         db.session.add(new_admin)
@@ -36,7 +40,7 @@ def admin_register():
         flash('Admin registered successfully!', 'success')
         return redirect(url_for('admin.admin_login'))
 
-    return render_template('admin_register.html')
+    return render_template('admin_register.html', secret_token=secret_token)
 
 @admin_bp.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -166,3 +170,4 @@ def order_list():
 def order_detail(order_id):
     order = Order.query.get_or_404(order_id)
     return render_template('order_detail.html', order=order)
+
