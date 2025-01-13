@@ -1,8 +1,9 @@
 from flask import Blueprint, request, render_template, flash, redirect, url_for, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from db import db
-from models import Admin, User, Item, ShoppingCart, CartItem, Order
+from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 
 # Blueprints
 index_bp = Blueprint('index', __name__)
@@ -11,6 +12,15 @@ user_bp = Blueprint('user', __name__)
 item_bp = Blueprint('item', __name__)
 cart_bp = Blueprint('cart', __name__)
 order_bp = Blueprint('order', __name__)
+
+def admin_required(func):
+    @wraps(func)
+    def decorated_view(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'admin':
+            flash('You do not have permission to access this page.', 'warning')
+            return redirect(url_for('index'))
+        return func(*args, **kwargs)
+    return decorated_view
 
 @index_bp.route('/')
 def index():
@@ -70,6 +80,60 @@ def admin_logout():
 def admin_dashboard():
     return render_template('admin_dashboard.html')
 
+# admin functionalities
+
+@admin_bp.route('/admin/categories')
+@login_required
+@admin_required
+def manage_categories():
+    categories = Category.query.all()
+    return render_template('admin/manage_categories.html', categories=categories)
+
+@admin_bp.route('/admin/categories/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def add_category():
+    if request.method == 'POST':
+        category_name = request.form['category_name']
+        parent_category_id = request.form['parent_category_id']
+        
+        if parent_category_id == '':
+            parent_category_id = None
+        
+        new_category = Category(category_name=category_name, parent_category_id=parent_category_id)
+        db.session.add(new_category)
+        db.session.commit()
+
+        flash('Category added successfully', 'success')
+        return redirect(url_for('admin.manage_categories'))
+    
+    parent_categories = Category.query.all()
+    return render_template('admin/add_category.html', parent_categories=parent_categories)
+
+@admin_bp.route('/admin/categories/<int:category_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_category(category_id):
+    category = Category.query.get_or_404(category_id)
+    if request.method == 'POST':
+        category.category_name = request.form['category_name']
+        category.parent_category_id = request.form['parent_category_id']
+        db.session.commit()
+        flash('Category updated successfully', 'success')
+        return redirect(url_for('admin.manage_categories')) 
+    parent_categories = Category.query.all()
+    return render_template('admin/edit_category.html', category=category, parent_categories=parent_categories)
+
+@admin_bp.route('/admin/categories/<int:category_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_category(category_id):
+    category = Category.query.get_or_404(category_id)
+    db.session.delete(category)
+    db.session.commit()
+    flash('Category deleted successfully', 'success')
+    return redirect(url_for('admin.manage_categories'))  
+
 # User Routes
 @user_bp.route('/user/register', methods=['GET', 'POST'])
 def user_register():
@@ -93,6 +157,7 @@ def user_register():
         return redirect(url_for('user.user_login'))
 
     return render_template('user_register.html')
+
 
 @user_bp.route('/user/login', methods=['GET', 'POST'])
 def user_login():

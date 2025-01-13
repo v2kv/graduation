@@ -1,7 +1,7 @@
 import os
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'GRADUARION')  # Get secret key from environment variables
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'GRADUATION')  # Get secret key from environment variables
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         'DATABASE_URL',
         'mysql+pymysql://ahmed:12345678@localhost/graduation'  
