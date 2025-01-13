@@ -50,7 +50,7 @@ def admin_register(secret_token):
         flash('Admin registered successfully!', 'success')
         return redirect(url_for('admin.admin_login'))
 
-    return render_template('admin_register.html', secret_token=secret_token)
+    return render_template('admin/admin_register.html', secret_token=secret_token)
 
 @admin_bp.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -66,7 +66,7 @@ def admin_login():
 
         flash('Invalid username or password', 'danger')
 
-    return render_template('admin_login.html')
+    return render_template('admin/admin_login.html')
 
 @admin_bp.route('/admin/logout')
 @login_required
@@ -78,7 +78,7 @@ def admin_logout():
 @admin_bp.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
-    return render_template('admin_dashboard.html')
+    return render_template('admin/admin_dashboard.html')
 
 # admin functionalities
 
@@ -156,7 +156,7 @@ def user_register():
         flash('User registered successfully!', 'success')
         return redirect(url_for('user.user_login'))
 
-    return render_template('user_register.html')
+    return render_template('user/user_register.html')
 
 
 @user_bp.route('/user/login', methods=['GET', 'POST'])
@@ -173,7 +173,7 @@ def user_login():
 
         flash('Invalid username or password', 'danger')
 
-    return render_template('user_login.html')
+    return render_template('user/user_login.html')
 
 @user_bp.route('/user/logout')
 @login_required
@@ -185,7 +185,7 @@ def user_logout():
 @user_bp.route('/user/dashboard')
 @login_required
 def user_dashboard():
-    return render_template('user_dashboard.html')
+    return render_template('user/user_dashboard.html')
 
 # Item Routes
 @item_bp.route('/items')
