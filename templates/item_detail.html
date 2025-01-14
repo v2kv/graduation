@@ -3,17 +3,23 @@
 {% block title %}{{ item.item_name }}{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row mt-5">
-        <div class="col-md-6">
-            <img src="{{ item.images[0].image_url }}" class="img-fluid" alt="{{ item.item_name }}">
+<div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+            {% if item.images %}
+                <img src="{{ item.images[0].image_url }}" alt="{{ item.item_name }}" class="w-full">
+            {% else %}
+                <img src="https://via.placeholder.com/500x500" alt="Placeholder" class="w-full">
+            {% endif %}
         </div>
-        <div class="col-md-6">
-            <h1>{{ item.item_name }}</h1>
-            <p>{{ item.item_description }}</p>
-            <p>Price: {{ item.item_price }}</p>
-            <form action="{{ url_for('cart.add_to_cart', item_id=item.item_id) }}" method="post">
-                <button type="submit" class="btn btn-primary">Add to Cart</button>
+        <div>
+            <h1 class="text-3xl font-bold mb-4">{{ item.item_name }}</h1>
+            <p class="text-gray-600 mb-4">{{ item.item_description }}</p>
+            <div class="mb-4">
+                <span class="text-xl font-bold">Price: ${{ item.item_price }}</span>
+            </div>
+            <form action="{{ url_for('cart.add_to_cart', item_id=item.item_id) }}" method="POST">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md text-lg font-semibold">Add to Cart</button>
             </form>
         </div>
     </div>

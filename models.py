@@ -87,6 +87,14 @@ class ItemTag(db.Model):
     item = db.relationship('Item')  
     tag = db.relationship('Tag') 
 
+class ProductImage(db.Model):
+    __tablename__ = 'product_images'
+    image_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), nullable=False)
+    item = db.relationship('Item', backref=db.backref('images', lazy=True))
+    image_url = db.Column(db.String(255), nullable=False) 
+    is_main = db.Column(db.Boolean, nullable=False, default=False)
+
 class Address(db.Model):
     __tablename__ = 'addresses'
     address_id = db.Column(db.Integer, primary_key=True, autoincrement=True)

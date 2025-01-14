@@ -1,14 +1,13 @@
+import os
 from flask import Blueprint, request, render_template, flash, redirect, url_for, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from db import db
-from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category, OrderItem, Tag, ItemTag
+from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category, OrderItem, Tag, ItemTag, ProductImage
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
-from db import reset_auto_increment
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
+from db import reset_auto_increment, allowed_file, upload_image, delete_image
+from werkzeug.utils import secure_filename
 
 # Blueprints
 index_bp = Blueprint('index', __name__)
@@ -32,7 +31,8 @@ def admin_required(func):
 
 @index_bp.route('/')
 def index():
-    return render_template('index.html')
+    items = Item.query.options(joinedload(Item.images)).all()
+    return render_template('index.html', items=items)
 
 # Admin Routes
 @admin_bp.route('/admin/register/<secret_token>', methods=['GET', 'POST'])
@@ -174,6 +174,16 @@ def add_item():
             item_tag = ItemTag(item_id=new_item.item_id, tag_id=tag_id)
             db.session.add(item_tag)
 
+        if 'image' in request.files:
+            image = request.files['image']
+            if image and allowed_file(image.filename):
+                image_url = upload_image(image, new_item.item_id)
+                product_image = ProductImage(item_id=new_item.item_id, image_url=image_url, is_main=True)
+                db.session.add(product_image)
+            else:
+                flash('Invalid image file. Allowed file types are: png, jpg, jpeg, gif.', 'danger')
+                return redirect(url_for('admin.add_item'))
+
         db.session.commit()
 
         flash('Item added successfully', 'success')
@@ -204,6 +214,27 @@ def edit_item(item_id):
         for tag_id in selected_tag_ids:
             item_tag = ItemTag(item_id=item.item_id, tag_id=tag_id)
             db.session.add(item_tag)
+
+        if 'image' in request.files:
+            image = request.files['image']
+            if image and allowed_file(image.filename):
+                # Delete existing main image from the file system
+                main_image = ProductImage.query.filter_by(item_id=item.item_id, is_main=True).first()
+                if main_image:
+                    delete_image(main_image.image_url)
+                
+                # Upload new main image
+                image_url = upload_image(image, item.item_id)
+                
+                # Remove existing main image from the database
+                ProductImage.query.filter_by(item_id=item.item_id, is_main=True).delete()
+                
+                # Add new main image to the database
+                product_image = ProductImage(item_id=item.item_id, image_url=image_url, is_main=True)
+                db.session.add(product_image)
+            else:
+                flash('Invalid image file. Allowed file types are: png, jpg, jpeg, gif.', 'danger')
+                return redirect(url_for('admin.edit_item', item_id=item_id))
         
         db.session.commit()
         flash('Item updated successfully', 'success')
@@ -218,9 +249,16 @@ def edit_item(item_id):
 @admin_required
 def delete_item(item_id):
     item = Item.query.get_or_404(item_id)
+
+    # Delete associated images from the file system and the database
+    for image in item.images:
+        delete_image(image.image_url)  # Remove the image from the file system
+        db.session.delete(image)  # Explicitly delete the image from the database
+
+    # Delete the item from the database
     db.session.delete(item)
     db.session.commit()
-    reset_auto_increment(db, 'items', 'item_id')
+
     flash('Item deleted successfully', 'success')
     return redirect(url_for('admin.manage_items'))
 
@@ -354,13 +392,34 @@ def user_dashboard():
 # Item Routes
 @item_bp.route('/items')
 def item_list():
-    items = Item.query.all()
+    items = Item.query.options(joinedload(Item.images)).all()
     return render_template('item_list.html', items=items)
 
 @item_bp.route('/item/<int:item_id>')
 def item_detail(item_id):
-    item = Item.query.get_or_404(item_id)
+    item = Item.query.options(joinedload(Item.images)).get_or_404(item_id)
     return render_template('item_detail.html', item=item)
+
+@item_bp.route('/items/search')
+def search_items():
+    query = request.args.get('q')
+    category_id = request.args.get('category')
+    tag_id = request.args.get('tag')
+    
+    items = Item.query.options(joinedload(Item.images))
+    
+    if query:
+        items = items.filter(Item.item_name.ilike(f'%{query}%'))
+    
+    if category_id:
+        items = items.filter(Item.category_id == category_id)
+    
+    if tag_id:
+        items = items.join(Item.tags).filter(Tag.tag_id == tag_id)
+    
+    items = items.all()
+    
+    return render_template('search_results.html', items=items, query=query)
 
 # Cart Routes
 @cart_bp.route('/cart')
