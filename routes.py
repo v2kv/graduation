@@ -5,6 +5,10 @@ from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category, O
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
+from db import reset_auto_increment
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 # Blueprints
 index_bp = Blueprint('index', __name__)
@@ -14,6 +18,8 @@ item_bp = Blueprint('item', __name__)
 cart_bp = Blueprint('cart', __name__)
 order_bp = Blueprint('order', __name__)
 
+# admin required flag for routes only accessible by admins
+
 def admin_required(func):
     @wraps(func)
     def decorated_view(*args, **kwargs):
@@ -22,6 +28,7 @@ def admin_required(func):
             return redirect(url_for('index'))
         return func(*args, **kwargs)
     return decorated_view
+
 
 @index_bp.route('/')
 def index():
@@ -135,6 +142,7 @@ def delete_category(category_id):
     category = Category.query.get_or_404(category_id)
     db.session.delete(category)
     db.session.commit()
+    reset_auto_increment(db, 'categories', 'category_id')
     flash('Category deleted successfully', 'success')
     return redirect(url_for('admin.manage_categories'))  
 
@@ -156,22 +164,15 @@ def add_item():
         item_description = request.form['item_description']
         item_price = request.form['item_price']
         category_id = request.form['category_id']
-        tags = request.form['tags'].split(',')
+        tag_ids = request.form.getlist('tags')
         
         new_item = Item(item_name=item_name, item_description=item_description, item_price=item_price, category_id=category_id)
         db.session.add(new_item)
         db.session.commit()
 
-        for tag_name in tags:
-            tag_name = tag_name.strip()
-            if tag_name:
-                tag = Tag.query.filter_by(tag_name=tag_name).first()
-                if not tag:
-                    tag = Tag(tag_name=tag_name)
-                    db.session.add(tag)
-                    db.session.commit()
-                item_tag = ItemTag(item=new_item, tag=tag)
-                db.session.add(item_tag)
+        for tag_id in tag_ids:
+            item_tag = ItemTag(item_id=new_item.item_id, tag_id=tag_id)
+            db.session.add(item_tag)
 
         db.session.commit()
 
@@ -179,7 +180,8 @@ def add_item():
         return redirect(url_for('admin.manage_items'))
     
     categories = Category.query.all()
-    return render_template('admin/add_item.html', categories=categories)
+    tags = Tag.query.all()
+    return render_template('admin/add_item.html', categories=categories, tags=tags)
 
 @admin_bp.route('/admin/items/<int:item_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -194,19 +196,22 @@ def edit_item(item_id):
         item.item_price = request.form['item_price']
         item.category_id = request.form['category_id']
 
-        item.tags = []
+        # Remove existing item tags
+        ItemTag.query.filter_by(item_id=item.item_id).delete()
+
+        # Add selected tags
         selected_tag_ids = request.form.getlist('tags')
         for tag_id in selected_tag_ids:
-            tag = Tag.query.get(tag_id)
-            item.tags.append(tag)
+            item_tag = ItemTag(item_id=item.item_id, tag_id=tag_id)
+            db.session.add(item_tag)
         
         db.session.commit()
         flash('Item updated successfully', 'success')
         return redirect(url_for('admin.manage_items'))
     
     categories = Category.query.all()
-    return render_template('admin/edit_item.html', item=item, categories=categories)
-
+    item_tags = [tag.tag_id for tag in item.tags]
+    return render_template('admin/edit_item.html', item=item, categories=categories, tags=tags, item_tags=item_tags)
 
 @admin_bp.route('/admin/items/<int:item_id>/delete', methods=['POST'])
 @login_required
@@ -215,10 +220,11 @@ def delete_item(item_id):
     item = Item.query.get_or_404(item_id)
     db.session.delete(item)
     db.session.commit()
+    reset_auto_increment(db, 'items', 'item_id')
     flash('Item deleted successfully', 'success')
     return redirect(url_for('admin.manage_items'))
 
-# tag creation
+# tags
 
 @admin_bp.route('/admin/tags', methods=['GET', 'POST'])
 @login_required
@@ -233,6 +239,64 @@ def manage_tags():
 
     tags = Tag.query.all()
     return render_template('admin/manage_tags.html', tags=tags)
+
+@admin_bp.route('/admin/tags/<int:tag_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_tag(tag_id):
+    tag = Tag.query.get_or_404(tag_id)
+    
+    # Check if the tag is used by any items
+    if tag.items:
+        item_count = len(tag.items)
+        flash(f"Cannot delete the tag. It is used by {item_count} item(s).", 'danger')
+    else:
+        db.session.delete(tag)
+        db.session.commit()
+        reset_auto_increment(db, 'tags', 'tag_id')
+        flash('Tag deleted successfully', 'success')
+    
+    return redirect(url_for('admin.manage_tags'))
+
+# user management
+
+@admin_bp.route('/admin/users')
+@login_required
+@admin_required
+def manage_users():
+    users = User.query.all()
+    return render_template('admin/manage_users.html', users=users)
+
+@admin_bp.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_user(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    if request.method == 'POST':
+        user.username = request.form['username']
+        user.first_name = request.form['first_name']
+        user.last_name = request.form['last_name']
+        user.user_email = request.form['email']
+        user.is_active = 'is_active' in request.form
+        db.session.commit()
+        flash('User updated successfully', 'success')
+        return redirect(url_for('admin.manage_users'))
+    
+    return render_template('admin/edit_user.html', user=user)
+
+@admin_bp.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    reset_auto_increment(db, 'users', 'user_id')
+    flash('User deleted successfully', 'success')
+    return redirect(url_for('admin.manage_users'))
+
+
 
 
 # User Routes
@@ -258,7 +322,6 @@ def user_register():
         return redirect(url_for('user.user_login'))
 
     return render_template('user/user_register.html')
-
 
 @user_bp.route('/user/login', methods=['GET', 'POST'])
 def user_login():
@@ -289,12 +352,10 @@ def user_dashboard():
     return render_template('user/user_dashboard.html')
 
 # Item Routes
-
 @item_bp.route('/items')
 def item_list():
     items = Item.query.all()
     return render_template('item_list.html', items=items)
-
 
 @item_bp.route('/item/<int:item_id>')
 def item_detail(item_id):
@@ -326,7 +387,6 @@ def add_to_cart(item_id):
     return redirect(url_for('item.item_detail', item_id=item_id))
 
 # Order Routes
-
 @order_bp.route('/create-order', methods=['POST'])
 @login_required
 def create_order():
@@ -356,10 +416,3 @@ def create_order():
 def order_list():
     orders = Order.query.filter_by(user_id=current_user.user_id).all()
     return render_template('order_list.html', orders=orders)
-
-@order_bp.route('/order/<int:order_id>')
-@login_required
-def order_detail(order_id):
-    order = Order.query.get_or_404(order_id)
-    return render_template('order_detail.html', order=order)
-

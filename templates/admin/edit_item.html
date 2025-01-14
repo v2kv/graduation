@@ -25,6 +25,14 @@
             {% endfor %}
         </select>
     </div>
+    <div class="form-group">
+        <label for="tags">Tags:</label>
+        <select multiple class="form-control" id="tags" name="tags">
+            {% for tag in tags %}
+            <option value="{{ tag.tag_id }}" {% if tag.tag_id in item_tags %}selected{% endif %}>{{ tag.tag_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
     <button type="submit" class="btn btn-primary">Update Item</button>
 </form>
 {% endblock %}

@@ -2,9 +2,6 @@ from db import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from db import db
-from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
 
 class Admin(UserMixin, db.Model):
     __tablename__ = 'admins'
@@ -59,6 +56,15 @@ class Item(db.Model):
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
+    # Many-to-Many relationship with Tag
+    tags = db.relationship(
+        'Tag',
+        secondary='item_tags',  # Association table
+        backref=db.backref('items', lazy='dynamic'),
+        lazy=True
+    )
+
+
 class ItemVariation(db.Model):
     __tablename__ = 'item_variations'
     variation_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -78,8 +84,8 @@ class ItemTag(db.Model):
     __tablename__ = 'item_tags'
     item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), primary_key=True)
     tag_id = db.Column(db.Integer, db.ForeignKey('tags.tag_id'), primary_key=True)
-    item = db.relationship('Item', backref=db.backref('tags', lazy=True))
-    tag = db.relationship('Tag', backref=db.backref('items', lazy=True))
+    item = db.relationship('Item')  
+    tag = db.relationship('Tag') 
 
 class Address(db.Model):
     __tablename__ = 'addresses'
@@ -175,3 +181,8 @@ class Discount(db.Model):
     start_date = db.Column(db.TIMESTAMP, nullable=False)
     end_date = db.Column(db.TIMESTAMP, nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+
+
+
+    

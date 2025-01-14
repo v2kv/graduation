@@ -27,7 +27,11 @@
     </div>
     <div class="form-group">
         <label for="tags">Tags:</label>
-        <input type="text" class="form-control" id="tags" name="tags" placeholder="Enter tags separated by commas">
+        <select multiple class="form-control" id="tags" name="tags">
+            {% for tag in tags %}
+            <option value="{{ tag.tag_id }}">{{ tag.tag_name }}</option>
+            {% endfor %}
+        </select>
     </div>
     <button type="submit" class="btn btn-primary">Add Item</button>
 </form>

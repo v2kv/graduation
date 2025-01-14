@@ -9,6 +9,7 @@
 <table class="table">
     <thead>
         <tr>
+            <th>ID</th>
             <th>Category Name</th>
             <th>Parent Category</th>
             <th>Actions</th>
@@ -17,6 +18,7 @@
     <tbody>
         {% for category in categories recursive %}
             <tr {% if not category.parent_category %}class="table-primary"{% endif %}>
+                <td> {{ category.category_id }} </td>
                 <td>
                     {% if category.subcategories %}
                         <strong>{{ category.category_name }}</strong>
