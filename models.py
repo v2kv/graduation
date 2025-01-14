@@ -15,6 +15,7 @@ class Admin(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False, default='admin')
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    email_verified = db.Column(db.Boolean, nullable=False, default=False)
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -32,6 +33,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    email_verified = db.Column(db.Boolean, nullable=False, default=False)
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -66,6 +68,18 @@ class ItemVariation(db.Model):
     variation_value = db.Column(db.String(100), nullable=False)
     price_modifier = db.Column(db.Numeric(10, 2), default=0.00)
     quantity = db.Column(db.Integer, nullable=False, default=0)
+
+class Tag(db.Model):
+    __tablename__ = 'tags'
+    tag_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tag_name = db.Column(db.String(50), unique=True, nullable=False)
+
+class ItemTag(db.Model):
+    __tablename__ = 'item_tags'
+    item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), primary_key=True)
+    tag_id = db.Column(db.Integer, db.ForeignKey('tags.tag_id'), primary_key=True)
+    item = db.relationship('Item', backref=db.backref('tags', lazy=True))
+    tag = db.relationship('Tag', backref=db.backref('items', lazy=True))
 
 class Address(db.Model):
     __tablename__ = 'addresses'

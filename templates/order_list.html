@@ -3,31 +3,33 @@
 {% block title %}Orders{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mt-5">Orders</h1>
-    {% if orders %}
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>Order Date</th>
-                <th>Total Amount</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order in orders %}
-            <tr>
-                <td>{{ order.order_id }}</td>
-                <td>{{ order.order_date }}</td>
-                <td>{{ order.total_amount }}</td>
-                <td>{{ order.order_status }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>You have no orders.</p>
-    {% endif %}
-</div>
+<h1>Orders</h1>
+{% if orders %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Order ID</th>
+            <th>Order Date</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.order_id }}</td>
+            <td>{{ order.order_date }}</td>
+            <td>{{ order.total_amount }}</td>
+            <td>{{ order.order_status }}</td>
+            <td>
+                <a href="{{ url_for('order.order_detail', order_id=order.order_id) }}" class="btn btn-primary btn-sm">View Details</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>You have no orders.</p>
+{% endif %}
 {% endblock %}

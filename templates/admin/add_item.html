@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Item{% endblock %}
+
+{% block content %}
+<h1>Add Item</h1>
+<form action="{{ url_for('admin.add_item') }}" method="POST">
+    <div class="form-group">
+        <label for="item_name">Item Name:</label>
+        <input type="text" class="form-control" id="item_name" name="item_name" required>
+    </div>
+    <div class="form-group">
+        <label for="item_description">Description:</label>
+        <textarea class="form-control" id="item_description" name="item_description" rows="3"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="item_price">Price:</label>
+        <input type="number" class="form-control" id="item_price" name="item_price" step="0.01" required>
+    </div>
+    <div class="form-group">
+        <label for="category_id">Category:</label>
+        <select class="form-control" id="category_id" name="category_id" required>
+            {% for category in categories %}
+            <option value="{{ category.category_id }}">{{ category.category_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="tags">Tags:</label>
+        <input type="text" class="form-control" id="tags" name="tags" placeholder="Enter tags separated by commas">
+    </div>
+    <button type="submit" class="btn btn-primary">Add Item</button>
+</form>
+{% endblock %}

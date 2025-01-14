@@ -3,29 +3,36 @@
 {% block title %}Cart{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mt-5">Cart</h1>
-    {% if cart and cart.items %}
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th>Quantity</th>
-                <th>Price</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for cart_item in cart.items %}
-            <tr>
-                <td>{{ cart_item.item.item_name }}</td>
-                <td>{{ cart_item.quantity }}</td>
-                <td>{{ cart_item.item.item_price }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>Your cart is empty.</p>
-    {% endif %}
-</div>
+<h1>Cart</h1>
+{% if cart and cart.items %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cart_item in cart.items %}
+        <tr>
+            <td>{{ cart_item.item.item_name }}</td>
+            <td>{{ cart_item.quantity }}</td>
+            <td>{{ cart_item.item.item_price }}</td>
+            <td>
+                <form action="{{ url_for('cart.remove_from_cart', item_id=cart_item.item_id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<form action="{{ url_for('order.create_order') }}" method="POST">
+    <button type="submit" class="btn btn-primary">Place Order</button>
+</form>
+{% else %}
+<p>Your cart is empty.</p>
+{% endif %}
 {% endblock %}
