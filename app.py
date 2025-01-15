@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from config import Config
 from db import db
 from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp
@@ -39,6 +39,16 @@ app.register_blueprint(user_bp)
 app.register_blueprint(item_bp)
 app.register_blueprint(cart_bp)
 app.register_blueprint(order_bp)
+
+# error handlers
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    return render_template('500.html'), 500
 
 if __name__ == '__main__':
     with app.app_context():
