@@ -1,13 +1,12 @@
 import os
-from flask import Blueprint, request, render_template, flash, redirect, url_for, current_app
+from flask import Blueprint, session, request, render_template, flash, redirect, url_for, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from db import db
 from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category, OrderItem, Tag, ItemTag, ProductImage
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
 from db import reset_auto_increment, allowed_file, upload_image, delete_image
-from werkzeug.utils import secure_filename
 
 # Blueprints
 index_bp = Blueprint('index', __name__)
@@ -69,6 +68,8 @@ def admin_login():
         admin = Admin.query.filter_by(username=username).first()
         if admin and admin.verify_password(password):
             login_user(admin)
+            # Set user type to admin in the session
+            session['user_type'] = 'admin'
             flash('Login successful!', 'success')
             return redirect(url_for('admin.admin_dashboard'))
 
@@ -370,6 +371,8 @@ def user_login():
         user = User.query.filter_by(username=username).first()
         if user and user.verify_password(password):
             login_user(user)
+            # Set user type to user in the session
+            session['user_type'] = 'user'
             flash('Login successful!', 'success')
             return redirect(url_for('user.user_dashboard'))
 

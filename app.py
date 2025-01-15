@@ -21,8 +21,16 @@ mail = Mail(app)
 
 @login_manager.user_loader
 def load_user(user_id):
+    from flask import session
     from models import Admin, User
-    return Admin.query.get(int(user_id)) or User.query.get(int(user_id))
+
+    # Determine user type from the session
+    user_type = session.get('user_type')
+    if user_type == 'admin':
+        return Admin.query.get(int(user_id))
+    elif user_type == 'user':
+        return User.query.get(int(user_id))
+    return None  # If no user is found
 
 # Register Blueprints
 app.register_blueprint(index_bp)
