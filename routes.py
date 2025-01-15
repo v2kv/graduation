@@ -640,6 +640,7 @@ def user_payments():
     payment_methods = PaymentMethod.query.filter_by(user_id=current_user.user_id).all()
     return render_template('user/user_payments.html', payment_methods=payment_methods)
 
+
 @user_bp.route('/user/payments/add', methods=['GET', 'POST'])
 @login_required
 def add_payment_method():
@@ -657,6 +658,9 @@ def add_payment_method():
             expiry_month = card.exp_month
             expiry_year = card.exp_year
 
+            # Check if this is the first payment method for the user
+            is_default = not PaymentMethod.query.filter_by(user_id=current_user.user_id).count()
+
             # Save the payment method in the database
             new_payment = PaymentMethod(
                 user_id=current_user.user_id,
@@ -664,7 +668,8 @@ def add_payment_method():
                 last_four_digits=last_four_digits,
                 expiry_month=expiry_month,
                 expiry_year=expiry_year,
-                stripe_payment_method_id=payment_method_id
+                stripe_payment_method_id=payment_method_id,
+                is_default=is_default  # Set as default if it's the first payment method
             )
             db.session.add(new_payment)
             db.session.commit()
@@ -684,11 +689,37 @@ def add_payment_method():
 
     return render_template('user/add_payment_method.html')
 
+@user_bp.route('/user/payments/<int:payment_id>/set-default', methods=['POST'])
+@login_required
+def set_default_payment_method(payment_id):
+    payment = PaymentMethod.query.get_or_404(payment_id)
+
+    # Ensure the user owns the payment method
+    if payment.user_id != current_user.user_id:
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for('user.user_payments'))
+
+    try:
+        # Unset the current default payment method
+        PaymentMethod.query.filter_by(user_id=current_user.user_id, is_default=True).update({'is_default': False})
+
+        # Set the selected payment method as the default
+        payment.is_default = True
+        db.session.commit()
+
+        flash("Default payment method updated successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred: {str(e)}", "danger")
+
+    return redirect(url_for('user.user_payments'))
+
 @user_bp.route('/user/payments/<int:payment_id>/delete', methods=['POST'])
 @login_required
 def delete_payment_method(payment_id):
     payment = PaymentMethod.query.get_or_404(payment_id)
 
+    # Ensure the user owns the payment method
     if payment.user_id != current_user.user_id:
         flash("Unauthorized action.", "danger")
         return redirect(url_for('user.user_payments'))

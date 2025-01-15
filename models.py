@@ -62,15 +62,17 @@ class PaymentMethod(db.Model):
     issuer = db.Column(db.String(50), nullable=False)
     last_four_digits = db.Column(db.String(4), nullable=False)
     expiry_month = db.Column(db.Integer, nullable=False)
-    expiry_year = db.Column(db.SmallInteger, nullable=False) 
+    expiry_year = db.Column(db.SmallInteger, nullable=False)
     stripe_payment_method_id = db.Column(db.String(255), nullable=False)  # PaymentMethod ID from Stripe
+    is_default = db.Column(db.Boolean, nullable=False, default=False)  # Track default payment method
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
-    updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(),
+                           onupdate=db.func.current_timestamp())
 
     user = db.relationship('User', backref=db.backref('payment_methods', cascade='all, delete-orphan'))
 
     def __repr__(self):
-        return f"<PaymentMethod(payment_id={self.payment_id}, issuer={self.issuer}, last_four_digits={self.last_four_digits})>"
+        return f"<PaymentMethod(payment_id={self.payment_id}, issuer={self.issuer}, last_four_digits={self.last_four_digits}, is_default={self.is_default})>"
 
 class Category(db.Model):
     __tablename__ = 'categories'
