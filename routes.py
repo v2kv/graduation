@@ -1,12 +1,14 @@
 import os
 from flask import Blueprint, session, request, render_template, flash, redirect, url_for, current_app
 from flask_login import login_user, logout_user, login_required, current_user
+import pycountry # list of all countries for address
+import re # check phone number format
 from db import db
-from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category, OrderItem, Tag, ItemTag, ProductImage
-from werkzeug.security import generate_password_hash
+from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category, OrderItem, Tag, ItemTag, ProductImage, Address
+from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
-from db import reset_auto_increment, allowed_file, upload_image, delete_image
+from db import reset_auto_increment, allowed_file, upload_image, delete_image # functions I defined in db.py
 
 # Blueprints
 index_bp = Blueprint('index', __name__)
@@ -255,6 +257,7 @@ def delete_item(item_id):
     for image in item.images:
         delete_image(image.image_url)  # Remove the image from the file system
         db.session.delete(image)  # Explicitly delete the image from the database
+        reset_auto_increment(db, 'product_image', 'image_id')
 
     # Delete the item from the database
     db.session.delete(item)
@@ -387,10 +390,245 @@ def user_logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('index.index'))
 
+# user dashboard routes
+
 @user_bp.route('/user/dashboard')
 @login_required
 def user_dashboard():
-    return render_template('user/user_dashboard.html')
+    addresses = Address.query.filter_by(user_id=current_user.user_id).all()
+    return render_template('user/user_dashboard.html', user=current_user, addresses=addresses)
+
+# Profile Management
+@user_bp.route('/user/profile', methods=['GET', 'POST'])
+@login_required
+def user_profile():
+    if request.method == 'POST':
+        current_user.first_name = request.form['first_name']
+        current_user.last_name = request.form['last_name']
+        db.session.commit()
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('user.user_profile'))
+    return render_template('user/user_profile.html', user=current_user)
+
+# Change Password
+@user_bp.route('/user/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+
+        if not check_password_hash(current_user.password_hash, current_password):
+            flash('Current password is incorrect.', 'danger')
+            return redirect(url_for('user.change_password'))
+
+        if new_password != confirm_password:
+            flash('New passwords do not match.', 'danger')
+            return redirect(url_for('user.change_password'))
+
+        current_user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        flash('Password changed successfully!', 'success')
+        return redirect(url_for('user.user_dashboard'))
+
+    return render_template('user/change_password.html')
+
+# Add Address
+
+# Get a list of all countries from pycountry
+COUNTRIES = [country.name for country in pycountry.countries]
+
+# Default country and Iraqi governorates
+DEFAULT_COUNTRY = "Iraq"
+IRAQ_GOVERNORATES = [
+    "Baghdad", "Basra", "Nineveh", "Kirkuk", "Erbil", "Sulaymaniyah", "Duhok",
+    "Anbar", "Babylon", "Dhi Qar", "Karbala", "Najaf", "Maysan", "Wasit",
+    "Qadisiyah", "Muthanna", "Salah ad-Din", "Diyala"
+]
+
+# Add Address
+@user_bp.route('/user/address/add', methods=['GET', 'POST'])
+@login_required
+def add_address():
+    if request.method == 'POST':
+        address_line = request.form['address_line']
+        city = request.form['city']
+        country = request.form['country']
+        postal_code = request.form['postal_code']
+        phone_number = request.form['phone_number'].strip()  # Remove spaces
+        governerate = request.form.get('governerate')
+        is_default = 'is_default' in request.form
+
+        # Debugging: Log the phone number input
+        print(f"DEBUG: Phone Number Input: '{phone_number}'")
+
+        # Ensure phone number contains only digits and has a length of 11
+        if not phone_number.isdigit() or len(phone_number) != 11:
+            flash("Phone number must contain exactly 11 numeric digits.", "danger")
+            return render_template('user/add_address.html', countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+
+        # Validate phone number for Iraq
+        if country == "Iraq":
+            iraq_phone_pattern = r"^07\d{9}$"  # Matches exactly 07XXXXXXXXX (11 digits)
+            if not re.match(iraq_phone_pattern, phone_number):
+                flash("Invalid phone number format for Iraq. Use format: 07XXXXXXXXX (11 digits).", "danger")
+                return render_template('user/add_address.html', countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+
+        # Handle governerate for Iraq
+        if country == "Iraq" and not governerate:
+            flash("Governorate is required for Iraq.", "danger")
+            return render_template('user/add_address.html', countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+
+        # Set governerate to None for non-Iraq countries
+        if country != "Iraq":
+            governerate = None
+
+        # Automatically set the first address as default
+        if not Address.query.filter_by(user_id=current_user.user_id).count():
+            is_default = True
+
+        # Unset default for other addresses if this is set as default
+        if is_default:
+            Address.query.filter_by(user_id=current_user.user_id, is_default=True).update({'is_default': False})
+
+        new_address = Address(
+            user_id=current_user.user_id,
+            address_line=address_line,
+            city=city,
+            governerate=governerate,
+            country=country,
+            postal_code=postal_code,
+            phone_number=phone_number,
+            is_default=is_default
+        )
+
+        try:
+            db.session.add(new_address)
+            db.session.commit()
+            flash("Address added successfully!", "success")
+            return redirect(url_for('user.user_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"An error occurred: {str(e)}", "danger")
+            return redirect(url_for('user.add_address'))
+
+    # Default to Iraq for new addresses
+    return render_template('user/add_address.html', countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country="Iraq")
+
+# Edit Address
+@user_bp.route('/user/address/<int:address_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_address(address_id):
+    address = Address.query.get_or_404(address_id)
+
+    # Ensure the user owns the address
+    if address.user_id != current_user.user_id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('user.user_dashboard'))
+
+    if request.method == 'POST':
+        address_line = request.form['address_line']
+        city = request.form['city']
+        country = request.form['country']
+        postal_code = request.form['postal_code']
+        phone_number = request.form['phone_number'].strip()  # Remove spaces
+        governerate = request.form.get('governerate')
+        is_default = 'is_default' in request.form
+
+        # Debugging: Log the phone number input
+        print(f"DEBUG: Phone Number Input: '{phone_number}'")
+
+        # Ensure phone number contains only digits and has a length of 11
+        if not phone_number.isdigit() or len(phone_number) != 11:
+            flash("Phone number must contain exactly 11 numeric digits.", "danger")
+            return render_template('user/edit_address.html', address=address, countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+
+        # Validate phone number for Iraq
+        if country == "Iraq":
+            iraq_phone_pattern = r"^07\d{9}$"  # Matches exactly 07XXXXXXXXX (11 digits)
+            if not re.match(iraq_phone_pattern, phone_number):
+                flash("Invalid phone number format for Iraq. Use format: 07XXXXXXXXX (11 digits).", "danger")
+                return render_template('user/edit_address.html', address=address, countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+
+        # Handle governerate for Iraq
+        if country == "Iraq" and not governerate:
+            flash("Governorate is required for Iraq.", "danger")
+            return render_template('user/edit_address.html', address=address, countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+
+        # Set governerate to None for non-Iraq countries
+        if country != "Iraq":
+            governerate = None
+
+        # Unset default for other addresses if this is set as default
+        if is_default:
+            Address.query.filter_by(user_id=current_user.user_id, is_default=True).update({'is_default': False})
+
+        # Update address fields
+        address.address_line = address_line
+        address.city = city
+        address.governerate = governerate
+        address.country = country
+        address.postal_code = postal_code
+        address.phone_number = phone_number
+        address.is_default = is_default
+
+        try:
+            db.session.commit()
+            flash("Address updated successfully!", "success")
+            return redirect(url_for('user.user_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"An error occurred: {str(e)}", "danger")
+            return redirect(url_for('user.edit_address', address_id=address_id))
+
+    return render_template('user/edit_address.html', address=address, countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=address.country)
+
+# Set Default Address
+@user_bp.route('/user/address/<int:address_id>/set-default', methods=['POST'])
+@login_required
+def set_default_address(address_id):
+    address = Address.query.get_or_404(address_id)
+
+    if address.user_id != current_user.user_id:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('user.user_dashboard'))
+
+    # Unset other default addresses
+    Address.query.filter_by(user_id=current_user.user_id, is_default=True).update({'is_default': False})
+
+    # Set the selected address as default
+    address.is_default = True
+    db.session.commit()
+
+    flash('Default address updated successfully!', 'success')
+    return redirect(url_for('user.user_dashboard'))
+
+@user_bp.route('/user/address/<int:address_id>/delete', methods=['POST'])
+@login_required
+def delete_address(address_id):
+    address = Address.query.get_or_404(address_id)
+
+    # Ensure the user owns the address
+    if address.user_id != current_user.user_id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('user.user_dashboard'))
+
+    # Prevent deletion of the default address
+    if address.is_default:
+        flash("Default address cannot be deleted. Please set another address as default first.", "danger")
+        return redirect(url_for('user.user_dashboard'))
+
+    try:
+        db.session.delete(address)
+        db.session.commit()
+        flash("Address deleted successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred: {str(e)}", "danger")
+
+    return redirect(url_for('user.user_dashboard'))
+
 
 # Item Routes
 @item_bp.route('/items')

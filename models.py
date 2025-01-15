@@ -37,6 +37,22 @@ class User(UserMixin, db.Model):
 
     def get_id(self):
         return str(self.user_id)
+    
+class Address(db.Model):
+    __tablename__ = 'addresses'
+    address_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('addresses', lazy=True))
+    address_line = db.Column(db.String(100), nullable=False)
+    city = db.Column(db.String(50), nullable=False)
+    governerate = db.Column(db.String(50), nullable=True)
+    country = db.Column(db.String(50), nullable=False)
+    postal_code = db.Column(db.String(20), nullable=False)
+    phone_number = db.Column(db.String(20), nullable=False)
+    is_default = db.Column(db.Boolean, nullable=False, default=False)
+
+    def __repr__(self):
+        return f"<Address {self.address_line}, {self.city}, {self.country}>"
 
 class Category(db.Model):
     __tablename__ = 'categories'
@@ -94,19 +110,6 @@ class ProductImage(db.Model):
     item = db.relationship('Item', backref=db.backref('images', lazy=True))
     image_url = db.Column(db.String(255), nullable=False) 
     is_main = db.Column(db.Boolean, nullable=False, default=False)
-
-class Address(db.Model):
-    __tablename__ = 'addresses'
-    address_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    user = db.relationship('User', backref=db.backref('addresses', lazy=True))
-    address_line = db.Column(db.String(100), nullable=False)
-    city = db.Column(db.String(50), nullable=False)
-    governerate = db.Column(db.String(50), nullable=False)
-    country = db.Column(db.String(50), nullable=False)
-    postal_code = db.Column(db.String(20), nullable=False)
-    phone_number = db.Column(db.String(20), nullable=False)
-    is_default = db.Column(db.Boolean, nullable=False, default=False)
 
 class ShoppingCart(db.Model):
     __tablename__ = 'shopping_carts'
