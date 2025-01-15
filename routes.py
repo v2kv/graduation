@@ -3,8 +3,9 @@ from flask import Blueprint, session, request, render_template, flash, redirect,
 from flask_login import login_user, logout_user, login_required, current_user
 import pycountry # list of all countries for address
 import re # check phone number format
+import stripe # simulate payments
 from db import db
-from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category, OrderItem, Tag, ItemTag, ProductImage, Address
+from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category, OrderItem, Tag, ItemTag, ProductImage, Address, PaymentMethod
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
@@ -629,6 +630,79 @@ def delete_address(address_id):
 
     return redirect(url_for('user.user_dashboard'))
 
+# user payments
+
+stripe.api_key = "sk_test_51QhcQwGK7HgCufdXVD0auQv4NGn8qm9TRWXRYlVoPkrvzzoI7WVmE9SYsIMH0zCn6fov7hlyvs0dp8Ra7kv4TC1r00HXsSH5ap" # stripe test secret key
+
+@user_bp.route('/user/payments')
+@login_required
+def user_payments():
+    payment_methods = PaymentMethod.query.filter_by(user_id=current_user.user_id).all()
+    return render_template('user/user_payments.html', payment_methods=payment_methods)
+
+@user_bp.route('/user/payments/add', methods=['GET', 'POST'])
+@login_required
+def add_payment_method():
+    if request.method == 'POST':
+        payment_method_id = request.form.get('payment_method_id')
+
+        try:
+            # Retrieve the PaymentMethod from Stripe
+            payment_method = stripe.PaymentMethod.retrieve(payment_method_id)
+
+            # Extract card details
+            card = payment_method.card
+            issuer = card.brand.title()  # e.g., "Visa"
+            last_four_digits = card.last4
+            expiry_month = card.exp_month
+            expiry_year = card.exp_year
+
+            # Save the payment method in the database
+            new_payment = PaymentMethod(
+                user_id=current_user.user_id,
+                issuer=issuer,
+                last_four_digits=last_four_digits,
+                expiry_month=expiry_month,
+                expiry_year=expiry_year,
+                stripe_payment_method_id=payment_method_id
+            )
+            db.session.add(new_payment)
+            db.session.commit()
+
+            flash("Payment method added successfully!", "success")
+            return redirect(url_for('user.user_payments'))
+
+        except stripe.error.StripeError as e:
+            db.session.rollback()  # Reset the session after failed transaction
+            flash(f"Error adding payment method: {e.user_message}", "danger")
+            return redirect(url_for('user.add_payment_method'))
+
+        except Exception as e:
+            db.session.rollback()  # Reset the session after failed transaction
+            flash(f"An error occurred: {str(e)}", "danger")
+            return redirect(url_for('user.add_payment_method'))
+
+    return render_template('user/add_payment_method.html')
+
+@user_bp.route('/user/payments/<int:payment_id>/delete', methods=['POST'])
+@login_required
+def delete_payment_method(payment_id):
+    payment = PaymentMethod.query.get_or_404(payment_id)
+
+    if payment.user_id != current_user.user_id:
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for('user.user_payments'))
+
+    try:
+        db.session.delete(payment)
+        db.session.commit()
+        reset_auto_increment(db, 'payment_methods', 'payment_id')
+        flash("Payment method deleted successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred: {str(e)}", "danger")
+
+    return redirect(url_for('user.user_payments'))
 
 # Item Routes
 @item_bp.route('/items')
@@ -661,6 +735,7 @@ def search_items():
     items = items.all()
     
     return render_template('search_results.html', items=items, query=query)
+
 
 # Cart Routes
 @cart_bp.route('/cart')

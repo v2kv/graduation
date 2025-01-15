@@ -54,6 +54,24 @@ class Address(db.Model):
     def __repr__(self):
         return f"<Address {self.address_line}, {self.city}, {self.country}>"
 
+class PaymentMethod(db.Model):
+    __tablename__ = 'payment_methods'
+
+    payment_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
+    issuer = db.Column(db.String(50), nullable=False)
+    last_four_digits = db.Column(db.String(4), nullable=False)
+    expiry_month = db.Column(db.Integer, nullable=False)
+    expiry_year = db.Column(db.SmallInteger, nullable=False) 
+    stripe_payment_method_id = db.Column(db.String(255), nullable=False)  # PaymentMethod ID from Stripe
+    created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
+    updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    user = db.relationship('User', backref=db.backref('payment_methods', cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f"<PaymentMethod(payment_id={self.payment_id}, issuer={self.issuer}, last_four_digits={self.last_four_digits})>"
+
 class Category(db.Model):
     __tablename__ = 'categories'
     category_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -193,7 +211,3 @@ class Discount(db.Model):
     end_date = db.Column(db.TIMESTAMP, nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
-
-
-
-    

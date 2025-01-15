@@ -2,4 +2,4 @@
 venv
 __pycache__
 draft.txt
-static
+static/uploads

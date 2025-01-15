@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+
+{% block title %}My Payment Methods{% endblock %}
+
+{% block content %}
+<style>
+    .logo {
+        width: 50px;
+        height: 50px;
+    }
+</style>
+<div class="container mt-4">
+    <h1>My Payment Methods</h1>
+    <hr>
+    <a href="{{ url_for('user.add_payment_method') }}" class="btn btn-primary mb-4">Add Payment Method</a>
+
+    {% if payment_methods %}
+        <div class="row">
+            {% for payment in payment_methods %}
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-body text-center">
+                            {% if payment.issuer|lower == "visa" %}
+                                <img src="/static/images/visa.png" alt="Visa Logo" class="mb-3" width="80">
+                            {% elif payment.issuer|lower == "mastercard" %}
+                                <img src="/static/images/mastercard.png" alt="MasterCard Logo" class="mb-3" width="80">
+                            {% else %}
+                                <span>{{ payment.issuer }}</span> <!-- Fallback for unknown issuers -->
+                            {% endif %}
+                            <h5>**** **** **** {{ payment.last_four_digits }}</h5>
+                            <p>Expiry: {{ "%02d" | format(payment.expiry_month) }}/{{ payment.expiry_year }}</p>
+                        </div>
+                        <div class="card-footer text-center">
+                            <form method="POST" action="{{ url_for('user.delete_payment_method', payment_id=payment.payment_id) }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No payment methods added yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
