@@ -1,75 +1,87 @@
 {% extends 'layout.html' %}
 
+{% block title %}Home{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <h1 class="text-center mb-4">Welcome to the E-commerce Website</h1>
-    <p class="text-center">Explore our wide range of products and find the best deals!</p>
+<div class="text-center my-5">
+    <h1>Welcome to Our E-commerce Store</h1>
+    <p>Discover the best products at unbeatable prices!</p>
+</div>
 
-    <!-- Search Bar -->
-    <div class="row justify-content-center mb-4">
-        <div class="col-md-8">
-            <input 
-                type="text" 
-                id="searchBar" 
-                class="form-control" 
-                placeholder="Search for products..." 
-            />
-        </div>
+<div class="row mb-4">
+    <div class="col-md-8">
+        <input type="text" id="search-bar" class="form-control" placeholder="Search for products...">
     </div>
-
-    <!-- Products Grid -->
-    <div class="row" id="productGrid">
-        {% for item in items %}
-        <div class="col-md-4 col-sm-6 mb-4 product-card" data-name="{{ item.item_name | lower }}" data-description="{{ item.item_description | lower }}">
-            <div class="card shadow-sm h-100">
-                <!-- Product Image -->
-                {% if item.images %}
-                <img 
-                    src="{{ item.images[0].image_url }}" 
-                    class="card-img-top" 
-                    alt="{{ item.item_name }}" 
-                    style="height: 200px; object-fit: cover;"
-                >
-                {% else %}
-                <img 
-                    src="https://via.placeholder.com/300x200?text=No+Image" 
-                    class="card-img-top" 
-                    alt="No Image Available" 
-                >
-                {% endif %}
-
-                <!-- Product Details -->
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title">{{ item.item_name }}</h5>
-                    <p class="card-text text-muted">{{ item.item_description[:100] }}...</p>
-                    <p class="card-text fw-bold text-primary mb-3">${{ item.item_price }}</p>
-                    <!-- Fixed the endpoint -->
-                    <a href="{{ url_for('item.item_detail', item_id=item.item_id) }}" class="btn btn-primary mt-auto">View Details</a>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
+    <div class="col-md-4">
+        <select id="filter-category" class="form-select">
+            <option value="">Filter by Category</option>
+            {% for category in categories %}
+                <option value="{{ category.category_id }}">{{ category.category_name }}</option>
+            {% endfor %}
+        </select>
     </div>
 </div>
 
+<div id="product-grid" class="row">
+    {% for item in items %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm" data-category="{{ item.category_id }}">
+                {% if item.images and item.images|length > 0 %}
+                    <img src="{{ url_for('static', filename='uploads/' + item.images[0].image_url) }}" class="card-img-top" alt="{{ item.item_name }}">
+                {% else %}
+                    <img src="{{ url_for('static', filename='images/no_image.png') }}" class="card-img-top" alt="No Image">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.item_name }}</h5>
+                    <p class="card-text">{{ item.item_description[:100] }}...</p>
+                    <p class="card-text"><strong>${{ item.item_price }}</strong></p>
+                    <button class="btn btn-primary add-to-cart" data-item-id="{{ item.item_id }}">🛒 Add to Cart</button>
+                    <button class="btn btn-secondary add-to-wishlist" data-item-id="{{ item.item_id }}">⭐ Add to Wishlist</button>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
 <script>
-    // Search functionality for filtering products
-    const searchBar = document.getElementById('searchBar');
-    const productCards = document.querySelectorAll('.product-card');
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchBar = document.getElementById('search-bar');
+        const filterCategory = document.getElementById('filter-category');
 
-    searchBar.addEventListener('input', function () {
-        const searchText = searchBar.value.toLowerCase();
+        searchBar.addEventListener('input', filterItems);
+        filterCategory.addEventListener('change', filterItems);
 
-        productCards.forEach(function (card) {
-            const name = card.getAttribute('data-name');
-            const description = card.getAttribute('data-description');
+        function filterItems() {
+            const query = searchBar.value.toLowerCase();
+            const category = filterCategory.value;
 
-            // Show card if the search text matches the product name or description
-            if (name.includes(searchText) || description.includes(searchText)) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
+            document.querySelectorAll('.card').forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const cardCategory = card.getAttribute('data-category');
+
+                const matchesQuery = query === '' || title.includes(query);
+                const matchesCategory = category === '' || cardCategory === category;
+
+                card.style.display = matchesQuery && matchesCategory ? '' : 'none';
+            });
+        }
+
+        document.querySelectorAll('.add-to-cart').forEach(button => {
+            button.addEventListener('click', function () {
+                const itemId = this.dataset.itemId;
+                fetch(`/cart/add/${itemId}`, { method: 'POST' })
+                    .then(response => alert('Item added to cart!'))
+                    .catch(() => alert('Error adding to cart'));
+            });
+        });
+
+        document.querySelectorAll('.add-to-wishlist').forEach(button => {
+            button.addEventListener('click', function () {
+                const itemId = this.dataset.itemId;
+                fetch(`/wishlist/add/${itemId}`, { method: 'POST' })
+                    .then(response => alert('Item added to wishlist!'))
+                    .catch(() => alert('Error adding to wishlist'));
+            });
         });
     });
 </script>

@@ -1,0 +1,16 @@
+{% extends 'layout.html' %}
+
+{% block title %}Order Details{% endblock %}
+
+{% block content %}
+<h1>Order Details</h1>
+<p><strong>Order ID:</strong> {{ order.order_id }}</p>
+<p><strong>Total Amount:</strong> ${{ order.total_amount }}</p>
+<p><strong>Status:</strong> {{ order.order_status }}</p>
+<h3>Items</h3>
+<ul>
+    {% for item in order.items %}
+        <li>{{ item.item.item_name }} (x{{ item.quantity }}) - ${{ item.price }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}

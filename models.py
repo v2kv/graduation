@@ -31,6 +31,7 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
+    stripe_customer_id = db.Column(db.String(255), nullable=True)
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -149,6 +150,10 @@ class CartItem(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     variation_id = db.Column(db.Integer, db.ForeignKey('item_variations.variation_id'))
     variation = db.relationship('ItemVariation')
+
+    @property
+    def total_price(self):
+        return self.item.item_price * self.quantity
 
 class Wishlist(db.Model):
     __tablename__ = 'wishlists'

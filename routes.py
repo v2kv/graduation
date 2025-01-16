@@ -1,15 +1,19 @@
 import os
-from flask import Blueprint, session, request, render_template, flash, redirect, url_for, current_app
+from flask import Blueprint, session, request, render_template, flash, redirect, url_for, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 import pycountry # list of all countries for address
 import re # check phone number format
 import stripe # simulate payments
+from stripe.error import StripeError
 from db import db
-from models import Admin, User, Item, ShoppingCart, CartItem, Order, Category, OrderItem, Tag, ItemTag, ProductImage, Address, PaymentMethod
+from models import Admin, User, Item, ShoppingCart, CartItem, Wishlist, WishlistItem,Order, Category, OrderItem, Tag, ItemTag, ProductImage, Address, PaymentMethod
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
 from db import reset_auto_increment, allowed_file, upload_image, delete_image # functions I defined in db.py
+
+
+
 
 # Blueprints
 index_bp = Blueprint('index', __name__)
@@ -17,6 +21,7 @@ admin_bp = Blueprint('admin', __name__)
 user_bp = Blueprint('user', __name__)
 item_bp = Blueprint('item', __name__)
 cart_bp = Blueprint('cart', __name__)
+wishlist_bp = Blueprint('wishlist', __name__)
 order_bp = Blueprint('order', __name__)
 
 # admin required flag for routes only accessible by admins
@@ -34,7 +39,8 @@ def admin_required(func):
 @index_bp.route('/')
 def index():
     items = Item.query.options(joinedload(Item.images)).all()
-    return render_template('index.html', items=items)
+    categories = Category.query.all()  # Fetch all categories for filtering
+    return render_template('index.html', items=items, categories=categories)
 
 # Admin Routes
 @admin_bp.route('/admin/register/<secret_token>', methods=['GET', 'POST'])
@@ -632,8 +638,6 @@ def delete_address(address_id):
 
 # user payments
 
-stripe.api_key = "sk_test_51QhcQwGK7HgCufdXVD0auQv4NGn8qm9TRWXRYlVoPkrvzzoI7WVmE9SYsIMH0zCn6fov7hlyvs0dp8Ra7kv4TC1r00HXsSH5ap" # stripe test secret key
-
 @user_bp.route('/user/payments')
 @login_required
 def user_payments():
@@ -644,49 +648,48 @@ def user_payments():
 @user_bp.route('/user/payments/add', methods=['GET', 'POST'])
 @login_required
 def add_payment_method():
+    stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
     if request.method == 'POST':
         payment_method_id = request.form.get('payment_method_id')
 
-        try:
-            # Retrieve the PaymentMethod from Stripe
-            payment_method = stripe.PaymentMethod.retrieve(payment_method_id)
+        # Retrieve the payment method from Stripe
+        payment_method = stripe.PaymentMethod.retrieve(payment_method_id)
 
-            # Extract card details
-            card = payment_method.card
-            issuer = card.brand.title()  # e.g., "Visa"
-            last_four_digits = card.last4
-            expiry_month = card.exp_month
-            expiry_year = card.exp_year
-
-            # Check if this is the first payment method for the user
-            is_default = not PaymentMethod.query.filter_by(user_id=current_user.user_id).count()
-
-            # Save the payment method in the database
-            new_payment = PaymentMethod(
-                user_id=current_user.user_id,
-                issuer=issuer,
-                last_four_digits=last_four_digits,
-                expiry_month=expiry_month,
-                expiry_year=expiry_year,
-                stripe_payment_method_id=payment_method_id,
-                is_default=is_default  # Set as default if it's the first payment method
-            )
-            db.session.add(new_payment)
+        # Create a Stripe Customer if the user doesn't have one
+        if not current_user.stripe_customer_id:
+            customer = stripe.Customer.create(email=current_user.user_email)
+            current_user.stripe_customer_id = customer.id
             db.session.commit()
 
-            flash("Payment method added successfully!", "success")
-            return redirect(url_for('user.user_payments'))
+        # Attach the payment method to the customer
+        stripe.PaymentMethod.attach(
+            payment_method_id,
+            customer=current_user.stripe_customer_id
+        )
 
-        except stripe.error.StripeError as e:
-            db.session.rollback()  # Reset the session after failed transaction
-            flash(f"Error adding payment method: {e.user_message}", "danger")
-            return redirect(url_for('user.add_payment_method'))
+        # Set this payment method as the default for the customer
+        stripe.Customer.modify(
+            current_user.stripe_customer_id,
+            invoice_settings={
+                'default_payment_method': payment_method_id
+            }
+        )
 
-        except Exception as e:
-            db.session.rollback()  # Reset the session after failed transaction
-            flash(f"An error occurred: {str(e)}", "danger")
-            return redirect(url_for('user.add_payment_method'))
+        # Save the payment method in the database
+        new_payment = PaymentMethod(
+            user_id=current_user.user_id,
+            issuer=payment_method.card.brand.title(),
+            last_four_digits=payment_method.card.last4,
+            expiry_month=payment_method.card.exp_month,
+            expiry_year=payment_method.card.exp_year,
+            stripe_payment_method_id=payment_method_id,
+            is_default=not PaymentMethod.query.filter_by(user_id=current_user.user_id).count()
+        )
+        db.session.add(new_payment)
+        db.session.commit()
 
+        flash("Payment method added successfully!", "success")
+        return redirect(url_for('user.user_payments'))
     return render_template('user/add_payment_method.html')
 
 @user_bp.route('/user/payments/<int:payment_id>/set-default', methods=['POST'])
@@ -706,6 +709,14 @@ def set_default_payment_method(payment_id):
         # Set the selected payment method as the default
         payment.is_default = True
         db.session.commit()
+
+        # Update Stripe customer's default payment method
+        stripe.Customer.modify(
+            current_user.stripe_customer_id,
+            invoice_settings={
+                'default_payment_method': payment.stripe_payment_method_id
+            }
+        )
 
         flash("Default payment method updated successfully!", "success")
     except Exception as e:
@@ -735,11 +746,11 @@ def delete_payment_method(payment_id):
 
     return redirect(url_for('user.user_payments'))
 
-# Item Routes
 @item_bp.route('/items')
 def item_list():
     items = Item.query.options(joinedload(Item.images)).all()
-    return render_template('item_list.html', items=items)
+    categories = Category.query.all()  # Add categories for filtering
+    return render_template('item_list.html', items=items, categories=categories)
 
 @item_bp.route('/item/<int:item_id>')
 def item_detail(item_id):
@@ -748,32 +759,31 @@ def item_detail(item_id):
 
 @item_bp.route('/items/search')
 def search_items():
-    query = request.args.get('q')
-    category_id = request.args.get('category')
-    tag_id = request.args.get('tag')
-    
-    items = Item.query.options(joinedload(Item.images))
-    
+    query = request.args.get('q', '').strip().lower()  # Search query
+    category_id = request.args.get('category', '').strip()  # Category filter
+    items_query = Item.query.options(joinedload(Item.images))
+
+    # Apply search filter
     if query:
-        items = items.filter(Item.item_name.ilike(f'%{query}%'))
-    
+        items_query = items_query.filter(Item.item_name.ilike(f'%{query}%'))
+
+    # Apply category filter
     if category_id:
-        items = items.filter(Item.category_id == category_id)
-    
-    if tag_id:
-        items = items.join(Item.tags).filter(Tag.tag_id == tag_id)
-    
-    items = items.all()
-    
-    return render_template('search_results.html', items=items, query=query)
+        items_query = items_query.filter_by(category_id=category_id)
+
+    items = items_query.all()
+    categories = Category.query.all()
+
+    return render_template('item_list.html', items=items, categories=categories)
 
 
 # Cart Routes
 @cart_bp.route('/cart')
 @login_required
-def cart():
+def view_cart():
     cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
     return render_template('cart.html', cart=cart)
+
 
 @cart_bp.route('/cart/add/<int:item_id>', methods=['POST'])
 @login_required
@@ -785,40 +795,324 @@ def add_to_cart(item_id):
         db.session.add(cart)
         db.session.commit()
 
-    cart_item = CartItem(cart_id=cart.cart_id, item_id=item.item_id, quantity=1)
-    db.session.add(cart_item)
+    cart_item = CartItem.query.filter_by(cart_id=cart.cart_id, item_id=item_id).first()
+    if cart_item:
+        cart_item.quantity += 1
+    else:
+        cart_item = CartItem(cart_id=cart.cart_id, item_id=item_id, quantity=1)
+        db.session.add(cart_item)
+
+    db.session.commit()
+    flash('Item added to cart!', 'success')
+    return redirect(url_for('cart.view_cart'))
+
+@cart_bp.route('/cart/update/<int:cart_item_id>', methods=['POST'])
+@login_required
+def update_cart_item(cart_item_id):
+    cart_item = CartItem.query.get_or_404(cart_item_id)
+
+    # Ensure the user owns the cart item
+    if cart_item.cart.user_id != current_user.user_id:
+        return {'error': 'Unauthorized'}, 403
+
+    data = request.get_json()
+    action = data.get('action')
+
+    if action == 'increase':
+        cart_item.quantity += 1
+    elif action == 'decrease' and cart_item.quantity > 1:
+        cart_item.quantity -= 1
+
+    db.session.commit()
+    return {'message': 'Cart updated successfully', 'quantity': cart_item.quantity}
+
+@cart_bp.route('/cart/remove/<int:cart_item_id>', methods=['POST'])
+@login_required
+def remove_from_cart(cart_item_id):
+    cart_item = CartItem.query.get_or_404(cart_item_id)
+    if cart_item.cart.user_id != current_user.user_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('cart.view_cart'))
+
+    db.session.delete(cart_item)
+    db.session.commit()
+    flash('Item removed from cart.', 'success')
+    return redirect(url_for('cart.view_cart'))
+
+@cart_bp.route('/cart/move-to-wishlist/<int:cart_item_id>', methods=['POST'])
+@login_required
+def move_to_wishlist(cart_item_id):
+    cart_item = CartItem.query.get_or_404(cart_item_id)
+
+    # Ensure the user owns the cart item
+    if cart_item.cart.user_id != current_user.user_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('cart.view_cart'))
+
+    # Add the item to the wishlist
+    wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+    if not wishlist:
+        wishlist = Wishlist(user_id=current_user.user_id)
+        db.session.add(wishlist)
+        db.session.commit()
+
+    wishlist_item = WishlistItem.query.filter_by(wishlist_id=wishlist.wishlist_id, item_id=cart_item.item_id).first()
+    if not wishlist_item:
+        wishlist_item = WishlistItem(wishlist_id=wishlist.wishlist_id, item_id=cart_item.item_id)
+        db.session.add(wishlist_item)
+
+    # Remove the item from the cart
+    db.session.delete(cart_item)
     db.session.commit()
 
-    flash('Item added to cart!', 'success')
-    return redirect(url_for('item.item_detail', item_id=item_id))
+    flash('Item moved to wishlist!', 'success')
+    return redirect(url_for('cart.view_cart'))
+
+# Wishlist Routes
+@wishlist_bp.route('/wishlist')
+@login_required
+def view_wishlist():
+    wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+    return render_template('wishlist.html', wishlist=wishlist)
+
+
+@wishlist_bp.route('/wishlist/add/<int:item_id>', methods=['POST'])
+@login_required
+def add_to_wishlist(item_id):
+    item = Item.query.get_or_404(item_id)
+    wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+    if not wishlist:
+        wishlist = Wishlist(user_id=current_user.user_id)
+        db.session.add(wishlist)
+        db.session.commit()
+
+    wishlist_item = WishlistItem.query.filter_by(wishlist_id=wishlist.wishlist_id, item_id=item_id).first()
+    if wishlist_item:
+        flash('Item is already in your wishlist.', 'warning')
+    else:
+        wishlist_item = WishlistItem(wishlist_id=wishlist.wishlist_id, item_id=item_id)
+        db.session.add(wishlist_item)
+        db.session.commit()
+        flash('Item added to wishlist!', 'success')
+
+    return redirect(url_for('wishlist.view_wishlist'))
+
+
+@wishlist_bp.route('/wishlist/remove/<int:wishlist_item_id>', methods=['POST'])
+@login_required
+def remove_from_wishlist(wishlist_item_id):
+    wishlist_item = WishlistItem.query.get_or_404(wishlist_item_id)
+    if wishlist_item.wishlist.user_id != current_user.user_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('wishlist.view_wishlist'))
+
+    db.session.delete(wishlist_item)
+    db.session.commit()
+    flash('Item removed from wishlist.', 'success')
+    return redirect(url_for('wishlist.view_wishlist'))
+
+@wishlist_bp.route('/wishlist/move-to-cart/<int:wishlist_item_id>', methods=['POST'])
+@login_required
+def move_to_cart(wishlist_item_id):
+    wishlist_item = WishlistItem.query.get_or_404(wishlist_item_id)
+
+    # Ensure the user owns the wishlist item
+    if wishlist_item.wishlist.user_id != current_user.user_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('wishlist.view_wishlist'))
+
+    # Add the item to the cart
+    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+    if not cart:
+        cart = ShoppingCart(user_id=current_user.user_id)
+        db.session.add(cart)
+        db.session.commit()
+
+    cart_item = CartItem.query.filter_by(cart_id=cart.cart_id, item_id=wishlist_item.item_id).first()
+    if cart_item:
+        cart_item.quantity += 1
+    else:
+        cart_item = CartItem(cart_id=cart.cart_id, item_id=wishlist_item.item_id, quantity=1)
+        db.session.add(cart_item)
+
+    # Remove the item from the wishlist
+    db.session.delete(wishlist_item)
+    db.session.commit()
+
+    flash('Item moved to cart!', 'success')
+    return redirect(url_for('wishlist.view_wishlist'))
+
 
 # Order Routes
-@order_bp.route('/create-order', methods=['POST'])
-@login_required
-def create_order():
-    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
-    if not cart or not cart.items:
-        flash('Your cart is empty.', 'danger')
-        return redirect(url_for('cart.cart'))
-    
-    total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
-    
-    new_order = Order(user_id=current_user.user_id, total_amount=total_amount)
-    db.session.add(new_order)
-    db.session.commit()
-
-    for cart_item in cart.items:
-        order_item = OrderItem(order_id=new_order.order_id, item_id=cart_item.item_id, quantity=cart_item.quantity, price=cart_item.item.item_price)
-        db.session.add(order_item)
-        db.session.delete(cart_item)
-
-    db.session.commit()
-
-    flash('Order placed successfully!', 'success')
-    return redirect(url_for('order.order_list'))
 
 @order_bp.route('/orders')
 @login_required
-def order_list():
+def view_orders():
     orders = Order.query.filter_by(user_id=current_user.user_id).all()
     return render_template('order_list.html', orders=orders)
+
+@order_bp.route('/orders/<int:order_id>')
+@login_required
+def order_detail(order_id):
+    order = Order.query.get_or_404(order_id)
+    return render_template('order_detail.html', order=order)
+
+@order_bp.route('/checkout', methods=['GET', 'POST'])
+@login_required
+def checkout():
+    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+    if not cart or not cart.items:
+        flash('Your cart is empty.', 'danger')
+        return redirect(url_for('cart.view_cart'))
+
+    addresses = Address.query.filter_by(user_id=current_user.user_id).all()
+    payment_methods = PaymentMethod.query.filter_by(user_id=current_user.user_id).all()
+
+    if request.method == 'POST':
+        address_id = request.form.get('address_id')
+        payment_method_id = request.form.get('payment_method_id')
+
+        # Validate the address and payment method
+        if not address_id or not payment_method_id:
+            flash('Please select both an address and a payment method.', 'danger')
+            return redirect(url_for('order.checkout'))
+
+        # Store the selected address and payment method in the session
+        session['address_id'] = address_id
+        session['payment_method_id'] = payment_method_id
+
+        # Redirect to the Stripe Checkout route
+        return redirect(url_for('order.stripe_checkout_session'))
+
+    return render_template('checkout.html', cart=cart, addresses=addresses, payment_methods=payment_methods)
+
+
+@order_bp.route('/checkout/process', methods=['POST'])
+@login_required
+def checkout_process():
+    address_id = request.form.get('address_id')
+    payment_method_id = request.form.get('payment_method_id')
+    
+    if not address_id or not payment_method_id:
+        flash('Please select both an address and a payment method.', 'danger')
+        return redirect(url_for('order.checkout'))
+    
+    # Verify address exists and belongs to the current user
+    selected_address = Address.query.get(address_id)
+    if not selected_address or selected_address.user_id != current_user.user_id:
+        flash('Invalid address selection.', 'danger')
+        return redirect(url_for('order.checkout'))
+    
+    session['address_id'] = address_id
+    session['payment_method_id'] = payment_method_id
+    return redirect(url_for('order.stripe_checkout_session'))
+
+
+@order_bp.route('/stripe_checkout_session', methods=['GET'])
+@login_required
+def stripe_checkout_session():
+    stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+    address_id_str = session.get('address_id')
+    payment_method_id = session.get('payment_method_id')
+    
+    # Validate and convert address_id to integer
+    if address_id_str is None:
+        flash('No address selected.', 'danger')
+        return redirect(url_for('order.checkout'))
+    
+    try:
+        address_id = int(address_id_str)
+    except ValueError:
+        flash('Invalid address ID.', 'danger')
+        return redirect(url_for('order.checkout'))
+    
+    # Check if the address exists and belongs to the current user
+    address = Address.query.get(address_id)
+    if not address or address.user_id != current_user.user_id:
+        flash('Selected address does not exist or does not belong to you.', 'danger')
+        return redirect(url_for('order.checkout'))
+    
+    # Retrieve cart and calculate total amount
+    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+    if not cart or not cart.items:
+        flash('Your cart is empty.', 'danger')
+        return redirect(url_for('cart.view_cart'))
+    
+    total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
+    total_cents = int(total_amount * 100)
+    
+    # Ensure customer ID is set
+    if not current_user.stripe_customer_id:
+        flash('Please add a payment method first.', 'danger')
+        return redirect(url_for('user.add_payment_method'))
+    
+    try:
+        # Create Stripe Checkout session
+        stripe_session = stripe.checkout.Session.create(
+            customer=current_user.stripe_customer_id,
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'unit_amount': total_cents,
+                    'product_data': {
+                        'name': 'Your Order',
+                    },
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('order.stripe_success', _external=True),
+            cancel_url=url_for('order.stripe_cancel', _external=True),
+        )
+        
+        # Redirect to Stripe Checkout
+        return redirect(stripe_session.url, code=303)
+    except StripeError as e:
+        flash(f"Stripe error: {e.user_message}", 'danger')
+        return redirect(url_for('order.checkout'))
+    
+    
+@order_bp.route('/stripe-success')
+@login_required
+def stripe_success():
+    # Retrieve cart and calculate total amount
+    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+    if cart and cart.items:
+        total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
+        address_id_str = session.get('address_id')
+        
+        try:
+            address_id = int(address_id_str)
+        except ValueError:
+            flash('Invalid address ID.', 'danger')
+            return redirect(url_for('order.checkout'))
+        
+        # Check if the address exists
+        address = Address.query.get(address_id)
+        if not address or address.user_id != current_user.user_id:
+            flash('Selected address does not exist or does not belong to you.', 'danger')
+            return redirect(url_for('order.checkout'))
+        
+        # Create a new order
+        new_order = Order(
+            user_id=current_user.user_id,
+            shipping_address_id=address_id,
+            total_amount=total_amount
+        )
+        db.session.add(new_order)
+        db.session.commit()
+        
+        # Clear session variables
+        session.pop('address_id', None)
+        session.pop('payment_method_id', None)
+        
+        flash('Payment successful! Your order has been placed.', 'success')
+    return redirect(url_for('order.view_orders'))
+
+
+@order_bp.route('/stripe-cancel')
+@login_required
+def stripe_cancel():
+    flash('Payment was cancelled.', 'warning')
+    return redirect(url_for('order.checkout'))

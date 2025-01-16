@@ -1,7 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, current_app
 from config import Config
 from db import db
-from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp
+from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp, wishlist_bp
 from flask_login import LoginManager
 from dotenv import load_dotenv
 from flask_mail import Mail
@@ -38,7 +38,12 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(item_bp)
 app.register_blueprint(cart_bp)
+app.register_blueprint(wishlist_bp)
 app.register_blueprint(order_bp)
+
+@app.context_processor
+def inject_current_app():
+    return dict(current_app=current_app)
 
 # error handlers
 
