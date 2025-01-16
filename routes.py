@@ -1013,7 +1013,6 @@ def checkout_process():
 def stripe_checkout_session():
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
     address_id_str = session.get('address_id')
-    payment_method_id = session.get('payment_method_id')
     
     # Validate and convert address_id to integer
     if address_id_str is None:

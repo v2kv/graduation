@@ -3,3 +3,4 @@ venv
 __pycache__
 draft.txt
 static/uploads
+config.py
