@@ -21,7 +21,7 @@
                     <td>{{ item.item.item_name }}</td>
                     <td>
                         <button class="btn btn-sm btn-secondary update-quantity" data-cart-item-id="{{ item.cart_item_id }}" data-action="decrease">-</button>
-                        <span class="mx-2">{{ item.quantity }}</span>
+                        <span class="mx-2 quantity">{{ item.quantity }}</span>
                         <button class="btn btn-sm btn-secondary update-quantity" data-cart-item-id="{{ item.cart_item_id }}" data-action="increase">+</button>
                     </td>
                     <td>${{ item.item.item_price }}</td>
@@ -55,20 +55,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action })
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert(data.error);
-                        return;
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw err; });
                     }
-
-                    // Update quantity in the UI
-                    const quantitySpan = this.parentElement.querySelector('.quantity');
-                    quantitySpan.textContent = data.quantity;
-
-                    location.reload(); // Reload to update totals
+                    return response.json();
                 })
-                .catch(() => alert('Error updating quantity.'));
+                .then(data => {
+                    // Update quantity and total price
+                    const row = this.closest('tr');
+                    row.querySelector('.quantity').textContent = data.quantity;
+                    row.querySelector('td:nth-child(4)').textContent = 
+                        `$${data.total_price.toFixed(2)}`;
+                })
+                .catch(error => {
+                    alert(error.error || 'Error updating quantity.');
+                });
             });
         });
     });

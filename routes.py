@@ -810,22 +810,30 @@ def add_to_cart(item_id):
 @cart_bp.route('/cart/update/<int:cart_item_id>', methods=['POST'])
 @login_required
 def update_cart_item(cart_item_id):
-    cart_item = CartItem.query.get_or_404(cart_item_id)
+    try:
+        cart_item = CartItem.query.get_or_404(cart_item_id)
+        if cart_item.cart.user_id != current_user.user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
 
-    # Ensure the user owns the cart item
-    if cart_item.cart.user_id != current_user.user_id:
-        return {'error': 'Unauthorized'}, 403
+        data = request.get_json()
+        action = data.get('action')
 
-    data = request.get_json()
-    action = data.get('action')
+        if action == 'increase':
+            cart_item.quantity += 1
+        elif action == 'decrease' and cart_item.quantity > 1:
+            cart_item.quantity -= 1
+        else:
+            return jsonify({'error': 'Invalid action'}), 400
 
-    if action == 'increase':
-        cart_item.quantity += 1
-    elif action == 'decrease' and cart_item.quantity > 1:
-        cart_item.quantity -= 1
-
-    db.session.commit()
-    return {'message': 'Cart updated successfully', 'quantity': cart_item.quantity}
+        db.session.commit()
+        return jsonify({
+            'message': 'Cart updated successfully',
+            'quantity': cart_item.quantity,
+            'total_price': float(cart_item.total_price)
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @cart_bp.route('/cart/remove/<int:cart_item_id>', methods=['POST'])
 @login_required
@@ -1071,31 +1079,12 @@ def stripe_checkout_session():
             )
 
             if payment_intent.status == 'succeeded':
-                # Create order
-                new_order = Order(
-                    user_id=current_user.user_id,
-                    shipping_address_id=address_id,
-                    total_amount=total_amount
-                )
-                db.session.add(new_order)
-                db.session.commit()
-                
-                # Clear cart and session
-                CartItem.query.filter_by(cart_id=cart.cart_id).delete()
-                session.pop('address_id', None)
-                session.pop('payment_method_id', None)
-                
-                flash('Payment successful!', 'success')
-                return redirect(url_for('order.view_orders'))
-                
-            # Handle additional authentication requirements
-            return redirect(url_for('order.handle_payment_auth', 
-                                  client_secret=payment_intent.client_secret))
+                # Store essential data in session for stripe_success
+                session['address_id'] = address_id
+                session['payment_method_id'] = payment_method_id
+                return redirect(url_for('order.stripe_success'))
 
         except StripeError as e:
-            if e.code == 'authentication_required':
-                return redirect(url_for('order.handle_payment_auth', 
-                                      client_secret=payment_intent.client_secret))
             flash(f"Payment error: {e.user_message}", 'danger')
             return redirect(url_for('order.checkout'))
     
@@ -1103,25 +1092,32 @@ def stripe_checkout_session():
 @order_bp.route('/stripe-success')
 @login_required
 def stripe_success():
-    # Retrieve cart and calculate total amount
+    # Retrieve essential data from session
+    address_id = session.get('address_id')
+    payment_method_id = session.get('payment_method_id')
+    
+    # Validate address
+    try:
+        address_id = int(address_id)
+    except (ValueError, TypeError):
+        flash('Invalid shipping address', 'danger')
+        return redirect(url_for('order.checkout'))
+    
+    address = Address.query.get(address_id)
+    if not address or address.user_id != current_user.user_id:
+        flash('Invalid shipping address', 'danger')
+        return redirect(url_for('order.checkout'))
+    
+    # Process cart and create order
     cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
-    if cart and cart.items:
-        total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
-        address_id_str = session.get('address_id')
-        
-        try:
-            address_id = int(address_id_str)
-        except ValueError:
-            flash('Invalid address ID.', 'danger')
-            return redirect(url_for('order.checkout'))
-        
-        # Check if the address exists
-        address = Address.query.get(address_id)
-        if not address or address.user_id != current_user.user_id:
-            flash('Selected address does not exist or does not belong to you.', 'danger')
-            return redirect(url_for('order.checkout'))
-        
-        # Create a new order
+    if not cart or not cart.items:
+        flash('Your cart is empty', 'danger')
+        return redirect(url_for('cart.view_cart'))
+    
+    total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
+    
+    try:
+        # Create order
         new_order = Order(
             user_id=current_user.user_id,
             shipping_address_id=address_id,
@@ -1129,12 +1125,20 @@ def stripe_success():
         )
         db.session.add(new_order)
         db.session.commit()
-        
-        # Clear session variables
+
+        # Clear cart items
+        CartItem.query.filter_by(cart_id=cart.cart_id).delete()
+        db.session.commit()
+
+        # Clear session data
         session.pop('address_id', None)
         session.pop('payment_method_id', None)
-        
+
         flash('Payment successful! Your order has been placed.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error processing order: {str(e)}", 'danger')
+    
     return redirect(url_for('order.view_orders'))
 
 
