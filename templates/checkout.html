@@ -28,7 +28,7 @@
 <!-- Shipping Address -->
 <h3>Shipping Address</h3>
 {% if addresses %}
-    <form action="{{ url_for('order.checkout_process') }}" method="post">
+    <form action="{{ url_for('order.checkout') }}" method="post">
         <div class="form-group">
             {% for address in addresses %}
                 <div class="form-check">
@@ -46,19 +46,31 @@
 <!-- Payment Method -->
 <h3>Payment Method</h3>
 {% if payment_methods %}
-    <div class="form-group">
-        {% for payment in payment_methods %}
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="payment_method_id" id="payment{{ payment.payment_id }}" value="{{ payment.payment_id }}" required>
-                <label class="form-check-label" for="payment{{ payment.payment_id }}">
-                    {{ payment.issuer }} ending in {{ payment.last_four_digits }}
-                </label>
-            </div>
-        {% endfor %}
+    {% for payment in payment_methods %}
+      <div class="form-check">
+        <input class="form-check-input" type="radio" 
+               name="payment_method_id" 
+               id="payment{{ payment.payment_id }}" 
+               value="{{ payment.payment_id }}" required
+               {% if payment.is_default %}checked{% endif %}>
+        <label class="form-check-label" for="payment{{ payment.payment_id }}">
+          {{ payment.issuer }} ending in {{ payment.last_four_digits }}
+          {% if payment.is_default %}(Default){% endif %}
+        </label>
+      </div>
+    {% endfor %}
+    <div class="form-check">
+      <input class="form-check-input" type="radio" 
+             name="payment_method_id" 
+             id="new_payment_method" 
+             value="new">
+      <label class="form-check-label" for="new_payment_method">
+        Use a new payment method
+      </label>
     </div>
-{% else %}
-    <p>No saved payment methods. <a href="{{ url_for('user.add_payment_method') }}">Add one</a>.</p>
-{% endif %}
+  {% else %}
+    <p>No saved payment methods. You'll need to enter a new payment method.</p>
+  {% endif %}
 
 <!-- Submit Button -->
 <button type="submit" class="btn btn-success w-100 mt-4">Pay with Stripe</button>

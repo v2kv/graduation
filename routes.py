@@ -24,7 +24,7 @@ cart_bp = Blueprint('cart', __name__)
 wishlist_bp = Blueprint('wishlist', __name__)
 order_bp = Blueprint('order', __name__)
 
-# admin required flag for routes only accessible by admins
+# admin required decorator for routes only accessible by admins
 
 def admin_required(func):
     @wraps(func)
@@ -629,6 +629,7 @@ def delete_address(address_id):
     try:
         db.session.delete(address)
         db.session.commit()
+        reset_auto_increment(db, 'addresses', 'address_id')
         flash("Address deleted successfully!", "success")
     except Exception as e:
         db.session.rollback()
@@ -836,6 +837,7 @@ def remove_from_cart(cart_item_id):
 
     db.session.delete(cart_item)
     db.session.commit()
+    reset_auto_increment(db, 'cart_items', 'cart_item_id')
     flash('Item removed from cart.', 'success')
     return redirect(url_for('cart.view_cart'))
 
@@ -863,6 +865,7 @@ def move_to_wishlist(cart_item_id):
 
     # Remove the item from the cart
     db.session.delete(cart_item)
+    reset_auto_increment(db, 'cart_items', 'cart_item_id')
     db.session.commit()
 
     flash('Item moved to wishlist!', 'success')
@@ -908,6 +911,7 @@ def remove_from_wishlist(wishlist_item_id):
 
     db.session.delete(wishlist_item)
     db.session.commit()
+    reset_auto_increment(db, 'wishlist_items', 'wishlist_item_id')
     flash('Item removed from wishlist.', 'success')
     return redirect(url_for('wishlist.view_wishlist'))
 
@@ -987,89 +991,113 @@ def checkout():
     return render_template('checkout.html', cart=cart, addresses=addresses, payment_methods=payment_methods)
 
 
-@order_bp.route('/checkout/process', methods=['POST'])
-@login_required
-def checkout_process():
-    address_id = request.form.get('address_id')
-    payment_method_id = request.form.get('payment_method_id')
-    
-    if not address_id or not payment_method_id:
-        flash('Please select both an address and a payment method.', 'danger')
-        return redirect(url_for('order.checkout'))
-    
-    # Verify address exists and belongs to the current user
-    selected_address = Address.query.get(address_id)
-    if not selected_address or selected_address.user_id != current_user.user_id:
-        flash('Invalid address selection.', 'danger')
-        return redirect(url_for('order.checkout'))
-    
-    session['address_id'] = address_id
-    session['payment_method_id'] = payment_method_id
-    return redirect(url_for('order.stripe_checkout_session'))
-
-
 @order_bp.route('/stripe_checkout_session', methods=['GET'])
 @login_required
 def stripe_checkout_session():
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
     address_id_str = session.get('address_id')
+    payment_method_id = session.get('payment_method_id')
     
-    # Validate and convert address_id to integer
-    if address_id_str is None:
-        flash('No address selected.', 'danger')
-        return redirect(url_for('order.checkout'))
-    
+    # Validate address
     try:
         address_id = int(address_id_str)
-    except ValueError:
-        flash('Invalid address ID.', 'danger')
+    except (ValueError, TypeError):
+        flash('Invalid shipping address', 'danger')
         return redirect(url_for('order.checkout'))
     
-    # Check if the address exists and belongs to the current user
     address = Address.query.get(address_id)
     if not address or address.user_id != current_user.user_id:
-        flash('Selected address does not exist or does not belong to you.', 'danger')
+        flash('Invalid shipping address', 'danger')
         return redirect(url_for('order.checkout'))
     
-    # Retrieve cart and calculate total amount
+    # Validate cart
     cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
     if not cart or not cart.items:
-        flash('Your cart is empty.', 'danger')
+        flash('Your cart is empty', 'danger')
         return redirect(url_for('cart.view_cart'))
     
     total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
     total_cents = int(total_amount * 100)
     
-    # Ensure customer ID is set
-    if not current_user.stripe_customer_id:
-        flash('Please add a payment method first.', 'danger')
-        return redirect(url_for('user.add_payment_method'))
-    
-    try:
-        # Create Stripe Checkout session
-        stripe_session = stripe.checkout.Session.create(
-            customer=current_user.stripe_customer_id,
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'unit_amount': total_cents,
-                    'product_data': {
-                        'name': 'Your Order',
+    # Handle different payment methods
+    if payment_method_id == 'new':
+        # Create Stripe Checkout Session for new payment method
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                customer=current_user.stripe_customer_id,
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'unit_amount': total_cents,
+                        'product_data': {'name': 'Order Total'},
                     },
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=url_for('order.stripe_success', _external=True),
-            cancel_url=url_for('order.stripe_cancel', _external=True),
-        )
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=url_for('order.stripe_success', _external=True),
+                cancel_url=url_for('order.stripe_cancel', _external=True),
+                payment_intent_data={
+                    'setup_future_usage': 'off_session',
+                }
+            )
+            return redirect(checkout_session.url, code=303)
+            
+        except StripeError as e:
+            flash(f"Checkout error: {e.user_message}", 'danger')
+            return redirect(url_for('order.checkout'))
+    
+    else:
+        # Handle saved payment method
+        payment_method = PaymentMethod.query.filter_by(
+            payment_id=payment_method_id,
+            user_id=current_user.user_id
+        ).first()
         
-        # Redirect to Stripe Checkout
-        return redirect(stripe_session.url, code=303)
-    except StripeError as e:
-        flash(f"Stripe error: {e.user_message}", 'danger')
-        return redirect(url_for('order.checkout'))
+        if not payment_method:
+            flash('Invalid payment method', 'danger')
+            return redirect(url_for('order.checkout'))
+
+        try:
+            # Attempt payment with saved method
+            payment_intent = stripe.PaymentIntent.create(
+                amount=total_cents,
+                currency='usd',
+                customer=current_user.stripe_customer_id,
+                payment_method=payment_method.stripe_payment_method_id,
+                confirm=True,
+                off_session=True,
+                metadata={'address_id': address_id}
+            )
+
+            if payment_intent.status == 'succeeded':
+                # Create order
+                new_order = Order(
+                    user_id=current_user.user_id,
+                    shipping_address_id=address_id,
+                    total_amount=total_amount
+                )
+                db.session.add(new_order)
+                db.session.commit()
+                
+                # Clear cart and session
+                CartItem.query.filter_by(cart_id=cart.cart_id).delete()
+                session.pop('address_id', None)
+                session.pop('payment_method_id', None)
+                
+                flash('Payment successful!', 'success')
+                return redirect(url_for('order.view_orders'))
+                
+            # Handle additional authentication requirements
+            return redirect(url_for('order.handle_payment_auth', 
+                                  client_secret=payment_intent.client_secret))
+
+        except StripeError as e:
+            if e.code == 'authentication_required':
+                return redirect(url_for('order.handle_payment_auth', 
+                                      client_secret=payment_intent.client_secret))
+            flash(f"Payment error: {e.user_message}", 'danger')
+            return redirect(url_for('order.checkout'))
     
     
 @order_bp.route('/stripe-success')
