@@ -53,7 +53,7 @@ def admin_register(secret_token):
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        password_hash = generate_password_hash(password)
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
         if Admin.query.filter((Admin.username == username) | (Admin.email == email)).first():
             flash('Username or email already exists!', 'danger')
@@ -357,7 +357,7 @@ def user_register():
         last_name = request.form['last_name']
         email = request.form['email']
         password = request.form['password']
-        password_hash = generate_password_hash(password)
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
         if User.query.filter((User.username == username) | (User.user_email == email)).first():
             flash('Username or email already exists!', 'danger')
@@ -434,14 +434,14 @@ def change_password():
             flash('New passwords do not match.', 'danger')
             return redirect(url_for('user.change_password'))
 
-        current_user.password_hash = generate_password_hash(new_password)
+        current_user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
         db.session.commit()
         flash('Password changed successfully!', 'success')
         return redirect(url_for('user.user_dashboard'))
 
     return render_template('user/change_password.html')
 
-# Add Address
+# Add Address         
 
 # Get a list of all countries from pycountry
 COUNTRIES = [country.name for country in pycountry.countries]
