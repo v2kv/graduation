@@ -3,6 +3,7 @@ venv
 __pycache__
 draft.txt
 static/uploads
-test.html
+# this is local folder for testing the front end
+
 testing
 # config.py
