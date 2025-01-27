@@ -56,6 +56,7 @@
                
                 <button class="btn btn-primary add-to-cart" data-item-id="{{ item.item_id }}">🛒 Add to Cart</button>
                 <button class="btn btn-secondary add-to-wishlist" data-item-id="{{ item.item_id }}">⭐ Add to Wishlist</button>
+                <a href="{{ url_for('item.item_detail', item_id=item.item_id) }}" class="btnn btn-primary mt-auto">View Details</a>
             </div>
         </div>
         <div class="info">
