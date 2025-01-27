@@ -48,13 +48,16 @@
         {% endif %}
     </div>
 
-    <!-- Orders Placeholder -->
     <div class="mb-4">
         <h2>My Orders</h2>
-        <p>Order management features coming soon...</p>
+        <a href="{{ url_for('order.view_orders') }}" class="btn btn-info">View Messages</a>
     </div>
 
-    <!-- Payments Placeholder -->
+    <div class="mb-4">
+        <h2>My Messages</h2>
+        <a href="{{ url_for('user.user_messages') }}" class="btn btn-info">View Messages</a>
+    </div>
+
     <div class="mb-4">
         <h2>My Payments</h2>
         <a href="{{ url_for('user.user_payments') }}" class="btn btn-primary">View Payments</a>

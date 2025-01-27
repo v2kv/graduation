@@ -27,7 +27,7 @@
         <div class="col-md-4 mb-4">
             <div class="card h-100 shadow-sm" data-category="{{ item.category_id }}">
                 {% if item.images and item.images|length > 0 %}
-                    <img src="{{ url_for('static', filename='uploads/' + item.images[0].image_url) }}" class="card-img-top" alt="{{ item.item_name }}">
+                    <img src="{{ url_for('static', filename='' + item.images[0].image_url) }}" class="card-img-top" alt="{{ item.item_name }}">
                 {% else %}
                     <img src="{{ url_for('static', filename='images/no_image.png') }}" class="card-img-top" alt="No Image">
                 {% endif %}

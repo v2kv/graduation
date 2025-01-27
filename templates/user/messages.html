@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Messages</h2>
+    <div class="list-group">
+        {% for message in messages %}
+        <div class="list-group-item {% if not message.is_read %}list-group-item-info{% endif %}">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="mb-1">{{ message.content }}</p>
+                    <small class="text-muted">{{ message.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                </div>
+                {% if not message.is_read %}
+                <form method="POST" action="{{ url_for('user.mark_message_read', message_id=message.message_id) }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Mark Read</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">No messages found.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
