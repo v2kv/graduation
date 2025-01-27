@@ -6,3 +6,4 @@ static/uploads
 # this is local folder for testing the front end
 testing
 # config.py
+.vscode/settings.json

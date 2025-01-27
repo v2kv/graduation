@@ -21,14 +21,13 @@
         </select>
     </div>
 </div>
-
-<div id="product-grid" class="row">
+<!-- Old style -->
+<!-- <div id="product-grid" class="row">
     {% for item in items %}
         <div class="col-md-4 mb-4">
             <div class="card h-100 shadow-sm" data-category="{{ item.category_id }}">
                 {% if item.images and item.images|length > 0 %}
                     <img src="/static/{{ item.images[0].image_url }}" class="card-img-top" alt="{{ item.item_name }}">
-                    <!-- <img src="/static/images/uploads/1/1682674693818.png" class="card-img-top" alt="{{ item.item_name }}"> -->
 
                 {% else %}
                     <img src="{{ url_for('static', filename='images/no_image.png') }}" class="card-img-top" alt="No Image">
@@ -42,6 +41,29 @@
                 </div>
             </div>
         </div>
+    {% endfor %}
+</div> -->
+<div class="wrapper">
+    {% for item in items %}
+    <div class="sing-card" data-category="{{ item.category_id }}">
+        <div class="img-area">
+            {% if item.images and item.images|length > 0 %}
+            <img src="/static/{{ item.images[0].image_url }}" alt="{{ item.item_name }}">
+            {% else %}
+            <img src="{{ url_for('static', filename='images/no_image.png') }}" class="card-img-top" alt="No Image">
+            {% endif %}
+            <div class="overlay">
+               
+                <button class="btn btn-primary add-to-cart" data-item-id="{{ item.item_id }}">🛒 Add to Cart</button>
+                <button class="btn btn-secondary add-to-wishlist" data-item-id="{{ item.item_id }}">⭐ Add to Wishlist</button>
+            </div>
+        </div>
+        <div class="info">
+            <h3 class="card-title" >{{ item.item_name }}</h3>
+            <p class="price">${{ item.item_price }}</p>
+            <p class="card-text">{{ item.item_description[:100] }}...</p>
+        </div>
+    </div>
     {% endfor %}
 </div>
 
@@ -57,7 +79,7 @@
             const query = searchBar.value.toLowerCase();
             const category = filterCategory.value;
 
-            document.querySelectorAll('.card').forEach(card => {
+            document.querySelectorAll('.sing-card').forEach(card => {
                 const title = card.querySelector('.card-title').textContent.toLowerCase();
                 const cardCategory = card.getAttribute('data-category');
 
