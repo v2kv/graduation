@@ -34,11 +34,16 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
+                    {% if current_user.role == 'admin' %}
+                          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">Dashboard</a></li>
+                          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_logout') }}">Logout</a></li>
+                          {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('user.user_dashboard') }}">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link btn-icon" href="{{ url_for('cart.view_cart') }}">🛒 Cart</a></li>
                         <li class="nav-item"><a class="nav-link btn-icon" href="{{ url_for('wishlist.view_wishlist') }}">⭐ Wishlist</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('order.view_orders') }}">Orders</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('user.user_logout') }}">Logout</a></li>
+                        {% endif %}
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('user.user_login') }}">Login</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('user.user_register') }}">Register</a></li>
