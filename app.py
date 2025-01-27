@@ -5,8 +5,7 @@ from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp, wish
 from flask_login import LoginManager
 from dotenv import load_dotenv
 from flask_mail import Mail
-
-load_dotenv()  # Load environment variables from .env
+import logging
 
 app = Flask(__name__)
 app.config.from_object(Config)
