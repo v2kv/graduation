@@ -5,11 +5,12 @@ from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp, wish
 from flask_login import LoginManager
 from dotenv import load_dotenv
 from flask_mail import Mail
-
+import logging
 load_dotenv()  # Load environment variables from .env
-
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# app.run(debug=True, port=5500)
 
 # Initialize extensions
 db.init_app(app)
