@@ -1083,7 +1083,6 @@ def checkout():
 
 
 @order_bp.route('/stripe_checkout_session', methods=['GET'])
-@order_bp.route('/stripe_checkout_session', methods=['GET'])
 @login_required
 def stripe_checkout_session():
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
@@ -1107,20 +1106,47 @@ def stripe_checkout_session():
 
         # If using existing payment method
         if payment_method_id and payment_method_id != 'new':
-            # Create Payment Intent directly
+            # Fetch the correct Stripe payment method ID from the database
+            payment_method = PaymentMethod.query.filter_by(
+                payment_id=payment_method_id, 
+                user_id=current_user.user_id
+            ).first()
+
+            if not payment_method:
+                flash('Invalid payment method selected.', 'danger')
+                return redirect(url_for('order.checkout'))
+
+            stripe_payment_method_id = payment_method.stripe_payment_method_id 
+
+            # Attach payment method to customer (if not already attached)
+            if not payment_method.is_default:
+                stripe.PaymentMethod.attach(
+                    stripe_payment_method_id,
+                    customer=current_user.stripe_customer_id
+                )
+
+                # Mark the payment method as default
+                payment_method.is_default = True
+                db.session.commit()
+
+            # Create Payment Intent
             payment_intent = stripe.PaymentIntent.create(
                 amount=total_cents,
                 currency='usd',
                 customer=current_user.stripe_customer_id,
-                payment_method=payment_method_id,
+                payment_method=stripe_payment_method_id,
                 confirm=True,
+                automatic_payment_methods={
+                    'enabled': True,
+                    'allow_redirects': 'never' 
+                },
                 metadata={
                     'address_id': address_id,
                     'user_id': current_user.user_id
                 }
             )
 
-            # Process successful payment
+            # Redirect on successful payment
             return redirect(url_for('order.stripe_success', payment_intent_id=payment_intent.id))
 
         # For new payment methods, use Checkout Session
@@ -1146,7 +1172,7 @@ def stripe_checkout_session():
 
         return redirect(checkout_session.url, code=303)
 
-    except StripeError as e:
+    except stripe.error.StripeError as e:
         current_app.logger.error(f"Stripe error: {str(e)}")
         flash(f"Payment error: {e.user_message}", 'danger')
         return redirect(url_for('order.checkout'))
@@ -1162,16 +1188,25 @@ def stripe_success():
         payment_intent_id = request.args.get('payment_intent_id')
         session_id = request.args.get('session_id')
 
+        metadata = None
+
         if payment_intent_id:
-            # Handle Payment Intent success
+            # Retrieve metadata from PaymentIntent
             payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
             metadata = payment_intent.metadata
         elif session_id:
-            # Handle Checkout Session success
+            # Retrieve metadata from CheckoutSession
             checkout_session = stripe.checkout.Session.retrieve(session_id)
             metadata = checkout_session.metadata
         else:
             raise ValueError("Missing payment verification ID")
+
+        # Extract address_id and user_id from metadata
+        address_id = metadata.get('address_id')
+        user_id = metadata.get('user_id')
+
+        if not address_id or int(user_id) != current_user.user_id:
+            raise ValueError("Invalid metadata in payment confirmation.")
 
         # Process order creation
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
@@ -1181,15 +1216,18 @@ def stripe_success():
 
         total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
 
+        # Save the order in the database
         new_order = Order(
             user_id=current_user.user_id,
             shipping_address_id=address_id,
             total_amount=total_amount,
             order_status='payment_successful, delivery pending',
-            stripe_payment_intent=checkout_session.payment_intent
+            stripe_payment_intent=payment_intent_id or checkout_session.payment_intent
         )
 
         db.session.add(new_order)
+
+        # Clear the cart
         CartItem.query.filter_by(cart_id=cart.cart_id).delete()
         db.session.commit()
 
