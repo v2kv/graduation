@@ -7,3 +7,9 @@ static/uploads
 testing
 # config.py
 .vscode/settings.json
+.idea/graduation.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.gitignore
+.idea/inspectionProfiles/profiles_settings.xml

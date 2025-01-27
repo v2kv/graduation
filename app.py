@@ -11,7 +11,8 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # app.run(debug=True, port=5500)
-
+if __name__ == '__main__':
+    app.run(debug=True, use_reloader=True)
 # Initialize extensions
 db.init_app(app)
 login_manager = LoginManager()
