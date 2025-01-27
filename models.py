@@ -178,23 +178,34 @@ class Order(db.Model):
     order_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
-    order_status = db.Column(db.String(20), nullable=False, default='pending')
+    order_status = db.Column(db.String(50), nullable=False, default='pending')
     order_date = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
     shipping_address_id = db.Column(db.Integer, db.ForeignKey('addresses.address_id'), nullable=False)
     shipping_address = db.relationship('Address')
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
+    stripe_payment_intent = db.Column(db.String(255)) 
+    refund_requested = db.Column(db.Boolean, default=False)
 
-class OrderItem(db.Model):
-    __tablename__ = 'order_items'
-    order_item_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.order_id'), nullable=False)
-    order = db.relationship('Order', backref=db.backref('items', lazy=True))
-    item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), nullable=False)
-    item = db.relationship('Item')
-    quantity = db.Column(db.Integer, nullable=False)
-    variation_id = db.Column(db.Integer, db.ForeignKey('item_variations.variation_id'))
-    variation = db.relationship('ItemVariation')
-    price = db.Column(db.Numeric(10, 2), nullable=False)
+# class OrderItem(db.Model):
+#     __tablename__ = 'order_items'
+#     order_item_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     order_id = db.Column(db.Integer, db.ForeignKey('orders.order_id'), nullable=False)
+#     order = db.relationship('Order', backref=db.backref('items', lazy=True))
+#     item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), nullable=False)
+#     item = db.relationship('Item')
+#     quantity = db.Column(db.Integer, nullable=False)
+#     variation_id = db.Column(db.Integer, db.ForeignKey('item_variations.variation_id'))
+#     variation = db.relationship('ItemVariation')
+#     price = db.Column(db.Numeric(10, 2), nullable=False)
+
+class Message(db.Model):
+    __tablename__ = 'messages'
+    message_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.order_id'), nullable=True)
+    content = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
 
 class Review(db.Model):
     __tablename__ = 'reviews'

@@ -6,7 +6,7 @@ import re # check phone number format
 import stripe # simulate payments
 from stripe.error import StripeError
 from db import db
-from models import Admin, User, Item, ShoppingCart, CartItem, Wishlist, WishlistItem,Order, Category, OrderItem, Tag, ItemTag, ProductImage, Address, PaymentMethod
+from models import Admin, User, Item, ShoppingCart, CartItem, Wishlist, WishlistItem, Order, Category, Tag, ItemTag, ProductImage, Address, PaymentMethod, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
@@ -306,6 +306,70 @@ def delete_tag(tag_id):
         flash('Tag deleted successfully', 'success')
     
     return redirect(url_for('admin.manage_tags'))
+
+# order management
+
+@admin_bp.route('/admin/orders')
+@login_required
+@admin_required
+def manage_orders():
+    orders = Order.query.all()
+    return render_template('admin/manage_orders.html', orders=orders)
+
+@admin_bp.route('/admin/orders/<int:order_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_order_status(order_id):
+    order = Order.query.get_or_404(order_id)
+    new_status = request.form.get('status')
+    
+    valid_statuses = ['payment_successful', 'sent', 'delivered', 'cancelled']
+    if new_status not in valid_statuses:
+        flash('Invalid status.', 'danger')
+        return redirect(url_for('admin.manage_orders'))
+    
+    order.order_status = new_status
+    message = Message(
+        user_id=order.user_id,
+        order_id=order.order_id,
+        content=f"Order status updated to {new_status.replace('_', ' ').title()}"
+    )
+    db.session.add(message)
+    db.session.commit()
+    flash('Order status updated.', 'success')
+    return redirect(url_for('admin.manage_orders'))
+
+@admin_bp.route('/admin/orders/<int:order_id>/process-refund', methods=['POST'])
+@login_required
+@admin_required
+def process_refund(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    if not order.refund_requested:
+        flash('No refund requested for this order.', 'danger')
+        return redirect(url_for('admin.manage_orders'))
+    
+    try:
+        stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+        refund = stripe.Refund.create(
+            payment_intent=order.stripe_payment_intent,
+            reason='requested_by_customer'
+        )
+        
+        order.order_status = 'refunded'
+        order.refund_requested = False
+        message = Message(
+            user_id=order.user_id,
+            order_id=order.order_id,
+            content=f"Refund processed for Order #{order.order_id}"
+        )
+        db.session.add(message)
+        db.session.commit()
+        flash('Refund processed successfully.', 'success')
+    except StripeError as e:
+        flash(f'Refund failed: {e.user_message}', 'danger')
+    
+    return redirect(url_for('admin.manage_orders'))
 
 # user management
 
@@ -777,6 +841,25 @@ def search_items():
 
     return render_template('item_list.html', items=items, categories=categories)
 
+# User Messages
+@user_bp.route('/user/messages')
+@login_required
+def user_messages():
+    messages = Message.query.filter_by(user_id=current_user.user_id).order_by(Message.created_at.desc()).all()
+    return render_template('user/messages.html', messages=messages)
+
+@user_bp.route('/user/messages/<int:message_id>/mark-read', methods=['POST'])
+@login_required
+def mark_message_read(message_id):
+    message = Message.query.get_or_404(message_id)
+    if message.user_id != current_user.user_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('user.user_messages'))
+    
+    message.is_read = True
+    db.session.commit()
+    return redirect(url_for('user.user_messages'))
+
 
 # Cart Routes
 @cart_bp.route('/cart')
@@ -1003,130 +1086,148 @@ def checkout():
 @login_required
 def stripe_checkout_session():
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-    address_id_str = session.get('address_id')
+    address_id = session.get('address_id')
     payment_method_id = session.get('payment_method_id')
-    
-    # Validate address
+
     try:
-        address_id = int(address_id_str)
-    except (ValueError, TypeError):
-        flash('Invalid shipping address', 'danger')
-        return redirect(url_for('order.checkout'))
-    
-    address = Address.query.get(address_id)
-    if not address or address.user_id != current_user.user_id:
-        flash('Invalid shipping address', 'danger')
-        return redirect(url_for('order.checkout'))
-    
-    # Validate cart
-    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
-    if not cart or not cart.items:
-        flash('Your cart is empty', 'danger')
-        return redirect(url_for('cart.view_cart'))
-    
-    total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
-    total_cents = int(total_amount * 100)
-    
-    # Handle different payment methods
-    if payment_method_id == 'new':
-        # Create Stripe Checkout Session for new payment method
-        try:
-            checkout_session = stripe.checkout.Session.create(
-                customer=current_user.stripe_customer_id,
-                payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'usd',
-                        'unit_amount': total_cents,
-                        'product_data': {'name': 'Order Total'},
-                    },
-                    'quantity': 1,
-                }],
-                mode='payment',
-                success_url=url_for('order.stripe_success', _external=True),
-                cancel_url=url_for('order.stripe_cancel', _external=True),
-                payment_intent_data={
-                    'setup_future_usage': 'off_session',
-                }
-            )
-            return redirect(checkout_session.url, code=303)
-            
-        except StripeError as e:
-            flash(f"Checkout error: {e.user_message}", 'danger')
-            return redirect(url_for('order.checkout'))
-    
-    else:
-        # Handle saved payment method
-        payment_method = PaymentMethod.query.filter_by(
-            payment_id=payment_method_id,
-            user_id=current_user.user_id
-        ).first()
-        
-        if not payment_method:
-            flash('Invalid payment method', 'danger')
+        # Validate address and cart
+        address = Address.query.get(address_id)
+        if not address or address.user_id != current_user.user_id:
+            flash('Invalid shipping address', 'danger')
             return redirect(url_for('order.checkout'))
 
-        try:
-            # Attempt payment with saved method
+        cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+        if not cart or not cart.items:
+            flash('Your cart is empty', 'danger')
+            return redirect(url_for('cart.view_cart'))
+
+        total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
+        total_cents = int(total_amount * 100)
+
+        # If using existing payment method
+        if payment_method_id and payment_method_id != 'new':
+            # Fetch the correct Stripe payment method ID from the database
+            payment_method = PaymentMethod.query.filter_by(
+                payment_id=payment_method_id, 
+                user_id=current_user.user_id
+            ).first()
+
+            if not payment_method:
+                flash('Invalid payment method selected.', 'danger')
+                return redirect(url_for('order.checkout'))
+
+            stripe_payment_method_id = payment_method.stripe_payment_method_id 
+
+            # Attach payment method to customer (if not already attached)
+            if not payment_method.is_default:
+                stripe.PaymentMethod.attach(
+                    stripe_payment_method_id,
+                    customer=current_user.stripe_customer_id
+                )
+
+                # Mark the payment method as default
+                payment_method.is_default = True
+                db.session.commit()
+
+            # Create Payment Intent
             payment_intent = stripe.PaymentIntent.create(
                 amount=total_cents,
                 currency='usd',
                 customer=current_user.stripe_customer_id,
-                payment_method=payment_method.stripe_payment_method_id,
+                payment_method=stripe_payment_method_id,
                 confirm=True,
-                off_session=True,
-                metadata={'address_id': address_id}
+                automatic_payment_methods={
+                    'enabled': True,
+                    'allow_redirects': 'never' 
+                },
+                metadata={
+                    'address_id': address_id,
+                    'user_id': current_user.user_id
+                }
             )
 
-            if payment_intent.status == 'succeeded':
-                # Store essential data in session for stripe_success
-                session['address_id'] = address_id
-                session['payment_method_id'] = payment_method_id
-                return redirect(url_for('order.stripe_success'))
+            # Redirect on successful payment
+            return redirect(url_for('order.stripe_success', payment_intent_id=payment_intent.id))
 
-        except StripeError as e:
-            flash(f"Payment error: {e.user_message}", 'danger')
-            return redirect(url_for('order.checkout'))
-    
-    
+        # For new payment methods, use Checkout Session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'unit_amount': total_cents,
+                    'product_data': {'name': 'Order Total'},
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('order.stripe_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('order.stripe_cancel', _external=True),
+            customer=current_user.stripe_customer_id or None,
+            metadata={
+                'address_id': address_id,
+                'user_id': current_user.user_id
+            }
+        )
+
+        return redirect(checkout_session.url, code=303)
+
+    except stripe.error.StripeError as e:
+        current_app.logger.error(f"Stripe error: {str(e)}")
+        flash(f"Payment error: {e.user_message}", 'danger')
+        return redirect(url_for('order.checkout'))
+    except Exception as e:
+        current_app.logger.error(f"Checkout error: {str(e)}")
+        flash("Error processing payment. Please try again.", 'danger')
+        return redirect(url_for('order.checkout'))
+
 @order_bp.route('/stripe-success')
 @login_required
 def stripe_success():
-    # Retrieve essential data from session
-    address_id = session.get('address_id')
-    payment_method_id = session.get('payment_method_id')
-    
-    # Validate address
     try:
-        address_id = int(address_id)
-    except (ValueError, TypeError):
-        flash('Invalid shipping address', 'danger')
-        return redirect(url_for('order.checkout'))
-    
-    address = Address.query.get(address_id)
-    if not address or address.user_id != current_user.user_id:
-        flash('Invalid shipping address', 'danger')
-        return redirect(url_for('order.checkout'))
-    
-    # Process cart and create order
-    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
-    if not cart or not cart.items:
-        flash('Your cart is empty', 'danger')
-        return redirect(url_for('cart.view_cart'))
-    
-    total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
-    
-    try:
-        # Create order
+        payment_intent_id = request.args.get('payment_intent_id')
+        session_id = request.args.get('session_id')
+
+        metadata = None
+
+        if payment_intent_id:
+            # Retrieve metadata from PaymentIntent
+            payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+            metadata = payment_intent.metadata
+        elif session_id:
+            # Retrieve metadata from CheckoutSession
+            checkout_session = stripe.checkout.Session.retrieve(session_id)
+            metadata = checkout_session.metadata
+        else:
+            raise ValueError("Missing payment verification ID")
+
+        # Extract address_id and user_id from metadata
+        address_id = metadata.get('address_id')
+        user_id = metadata.get('user_id')
+
+        if not address_id or int(user_id) != current_user.user_id:
+            raise ValueError("Invalid metadata in payment confirmation.")
+
+        # Process order creation
+        cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+        if not cart or not cart.items:
+            flash('Your cart is empty', 'danger')
+            return redirect(url_for('cart.view_cart'))
+
+        total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
+
+        # Save the order in the database
         new_order = Order(
             user_id=current_user.user_id,
             shipping_address_id=address_id,
-            total_amount=total_amount
+            total_amount=total_amount,
+            order_status='payment_successful, delivery pending',
+            stripe_payment_intent=payment_intent_id or checkout_session.payment_intent
         )
-        db.session.add(new_order)
-        db.session.commit()
 
-        # Clear cart items
+        db.session.add(new_order)
+
+        # Clear the cart
         CartItem.query.filter_by(cart_id=cart.cart_id).delete()
         db.session.commit()
 
@@ -1135,11 +1236,18 @@ def stripe_success():
         session.pop('payment_method_id', None)
 
         flash('Payment successful! Your order has been placed.', 'success')
+        return redirect(url_for('order.view_orders'))
+
+    except (StripeError, ValueError, AttributeError) as e:
+        db.session.rollback()
+        current_app.logger.error(f"Order processing error: {str(e)}")
+        flash('Error processing your order. Please contact support.', 'danger')
+        return redirect(url_for('order.checkout'))
     except Exception as e:
         db.session.rollback()
-        flash(f"Error processing order: {str(e)}", 'danger')
-    
-    return redirect(url_for('order.view_orders'))
+        current_app.logger.error(f"Unexpected error: {str(e)}")
+        flash('An unexpected error occurred. Please contact support.', 'danger')
+        return redirect(url_for('order.checkout'))
 
 
 @order_bp.route('/stripe-cancel')
@@ -1147,3 +1255,62 @@ def stripe_success():
 def stripe_cancel():
     flash('Payment was cancelled.', 'warning')
     return redirect(url_for('order.checkout'))
+
+@order_bp.route('/orders/<int:order_id>/cancel', methods=['POST'])
+@login_required
+def cancel_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    if order.user_id != current_user.user_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('order.view_orders'))
+    
+    if order.order_status not in ['payment_successful', 'pending']:
+        flash('This order cannot be canceled.', 'danger')
+        return redirect(url_for('order.view_orders'))
+    
+    try:
+        # Create refund in Stripe
+        stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+        refund = stripe.Refund.create(
+            payment_intent=order.stripe_payment_intent,
+            reason='requested_by_customer'
+        )
+        
+        order.order_status = 'cancelled'
+        message = Message(
+            user_id=current_user.user_id,
+            order_id=order.order_id,
+            content=f"Order #{order.order_id} has been cancelled and refund processed."
+        )
+        db.session.add(message)
+        db.session.commit()
+        flash('Order cancelled and refund processed.', 'success')
+    except StripeError as e:
+        flash(f'Refund failed: {e.user_message}', 'danger')
+    
+    return redirect(url_for('order.view_orders'))
+
+@order_bp.route('/orders/<int:order_id>/request-refund', methods=['POST'])
+@login_required
+def request_refund(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    if order.user_id != current_user.user_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('order.view_orders'))
+    
+    if order.order_status not in ['payment_successful', 'sent']:
+        flash('This order cannot be refunded.', 'danger')
+        return redirect(url_for('order.view_orders'))
+    
+    order.refund_requested = True
+    message = Message(
+        user_id=current_user.user_id,
+        order_id=order.order_id,
+        content=f"Refund requested for Order #{order.order_id}"
+    )
+    db.session.add(message)
+    db.session.commit()
+    flash('Refund request submitted.', 'success')
+    return redirect(url_for('order.view_orders'))
