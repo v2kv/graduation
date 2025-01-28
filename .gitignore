@@ -11,5 +11,4 @@ mydb.sql
 # command to dump database informaion insertion data only
 # zsh,bash>> mysqldump -u ahmed -p --no-create-info graduation > mydb.sql
 .hintrc
-static/webfonts
 .DS_Store
