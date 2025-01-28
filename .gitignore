@@ -6,13 +6,9 @@ static/uploads
 # this is local folder for testing the front end
 testing
 # config.py
-.vscode/settings.json
-.idea/graduation.iml
-.idea/misc.xml
-.idea/modules.xml
-.idea/vcs.xml
-.gitignore
-.idea/inspectionProfiles/profiles_settings.xml
+
 mydb.sql
 # command to dump database informaion insertion data only
 # zsh,bash>> mysqldump -u ahmed -p --no-create-info graduation > mydb.sql
+.hintrc
+static/webfonts
