@@ -185,6 +185,8 @@ class Order(db.Model):
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     stripe_payment_intent = db.Column(db.String(255)) 
     refund_requested = db.Column(db.Boolean, default=False)
+    refund_status = db.Column(db.String(50), nullable=True)
+    refund_denial_reason = db.Column(db.Text, nullable=True)
 
 # class OrderItem(db.Model):
 #     __tablename__ = 'order_items'
