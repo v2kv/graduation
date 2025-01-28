@@ -12,3 +12,4 @@ mydb.sql
 # zsh,bash>> mysqldump -u ahmed -p --no-create-info graduation > mydb.sql
 .hintrc
 static/webfonts
+.DS_Store
