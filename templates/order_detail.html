@@ -1,16 +1,73 @@
-{% extends 'layout.html' %}
-
-{% block title %}Order Details{% endblock %}
+{% extends "layout.html" %}
 
 {% block content %}
-<h1>Order Details</h1>
-<p><strong>Order ID:</strong> {{ order.order_id }}</p>
-<p><strong>Total Amount:</strong> ${{ order.total_amount }}</p>
-<p><strong>Status:</strong> {{ order.order_status }}</p>
-<h3>Items</h3>
-<ul>
-    {% for item in order.items %}
-        <li>{{ item.item.item_name }} (x{{ item.quantity }}) - ${{ item.price }}</li>
-    {% endfor %}
-</ul>
+<div class="container my-4">
+    <h2 class="mb-4">Order Details</h2>
+    
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title">Order #{{ order.order_id }}</h3>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h4>Order Information</h4>
+                    <p>
+                        <strong>Status:</strong> {{ order.order_status|title }}<br>
+                        <strong>Date:</strong> {{ order.order_date.strftime('%Y-%m-%d %H:%M') }}<br>
+                        <strong>Total Amount:</strong> ${{ order.total_amount }}
+                    </p>
+                </div>
+                
+                <div class="col-md-6">
+                    <h4>Shipping Address</h4>
+                    <p>
+                        {{ order.shipping_address.address_line }}<br>
+                        {{ order.shipping_address.city }}
+                        {% if order.shipping_address.governerate %}
+                        , {{ order.shipping_address.governerate }}
+                        {% endif %}<br>
+                        {{ order.shipping_address.country }}<br>
+                        {{ order.shipping_address.postal_code }}<br>
+                        Phone: {{ order.shipping_address.phone_number }}
+                    </p>
+                </div>
+            </div>
+
+            {% if order.refund_status %}
+            <div class="alert {% if order.refund_status == 'approved' %}alert-success{% elif order.refund_status == 'denied' %}alert-danger{% else %}alert-info{% endif %}">
+                <strong>Refund Status:</strong> {{ order.refund_status|title }}
+                {% if order.refund_denial_reason %}
+                <br>
+                <strong>Reason:</strong> {{ order.refund_denial_reason }}
+                {% endif %}
+            </div>
+            {% elif order.refund_requested %}
+            <div class="alert alert-info">
+                <strong>Refund Status:</strong> Pending admin approval.
+            </div>
+            {% endif %}
+
+            <div class="mt-4">
+                <a href="{{ url_for('order.view_orders') }}" class="btn btn-primary">Back to Orders</a>
+                
+                {% if order.order_status == 'sent' %}
+                    {% if not order.refund_requested %}
+                    <form action="{{ url_for('order.request_refund', order_id=order.order_id) }}" 
+                          method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-warning">Request Refund</button>
+                    </form>
+                    {% endif %}
+                {% elif order.order_status == 'payment_successful, delivery pending' %}
+                    <form action="{{ url_for('order.cancel_order', order_id=order.order_id) }}" 
+                          method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-danger" 
+                                onclick="return confirm('Are you sure you want to cancel this order?')">
+                            Cancel Order
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

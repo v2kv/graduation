@@ -323,7 +323,7 @@ def update_order_status(order_id):
     order = Order.query.get_or_404(order_id)
     new_status = request.form.get('status')
     
-    valid_statuses = ['payment_successful', 'sent', 'delivered', 'cancelled']
+    valid_statuses = ['sent', 'delivered', 'cancelled']
     if new_status not in valid_statuses:
         flash('Invalid status.', 'danger')
         return redirect(url_for('admin.manage_orders'))
@@ -344,31 +344,43 @@ def update_order_status(order_id):
 @admin_required
 def process_refund(order_id):
     order = Order.query.get_or_404(order_id)
+    action = request.form.get('action')
+    denial_reason = request.form.get('denial_reason')
     
-    if not order.refund_requested:
-        flash('No refund requested for this order.', 'danger')
-        return redirect(url_for('admin.manage_orders'))
-    
-    try:
-        stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-        refund = stripe.Refund.create(
-            payment_intent=order.stripe_payment_intent,
-            reason='requested_by_customer'
-        )
+    if action == 'approve':
+        try:
+            stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+            refund = stripe.Refund.create(
+                payment_intent=order.stripe_payment_intent,
+                reason='requested_by_customer'
+            )
+            
+            order.order_status = 'refunded'
+            order.refund_status = 'approved'
+            message = Message(
+                user_id=order.user_id,
+                order_id=order.order_id,
+                content=f"Your refund request for Order #{order.order_id} has been approved and processed."
+            )
+        except StripeError as e:
+            flash(f'Refund failed: {e.user_message}', 'danger')
+            return redirect(url_for('admin.manage_orders'))
+    elif action == 'deny':
+        if not denial_reason:
+            flash('Please provide a reason for denying the refund.', 'danger')
+            return redirect(url_for('admin.manage_orders'))
         
-        order.order_status = 'refunded'
-        order.refund_requested = False
+        order.refund_status = 'denied'
+        order.refund_denial_reason = denial_reason
         message = Message(
             user_id=order.user_id,
             order_id=order.order_id,
-            content=f"Refund processed for Order #{order.order_id}"
+            content=f"Your refund request for Order #{order.order_id} has been denied. Reason: {denial_reason}"
         )
-        db.session.add(message)
-        db.session.commit()
-        flash('Refund processed successfully.', 'success')
-    except StripeError as e:
-        flash(f'Refund failed: {e.user_message}', 'danger')
     
+    db.session.add(message)
+    db.session.commit()
+    flash('Refund request processed.', 'success')
     return redirect(url_for('admin.manage_orders'))
 
 # user management
@@ -1227,6 +1239,13 @@ def stripe_success():
 
         db.session.add(new_order)
 
+        message = Message(
+            user_id=current_user.user_id,
+            order_id=new_order.order_id,
+            content=f"Order #{new_order.order_id} has been created successfully. Total amount: ${total_amount}"
+        )
+        db.session.add(message)
+
         # Clear the cart
         CartItem.query.filter_by(cart_id=cart.cart_id).delete()
         db.session.commit()
@@ -1265,7 +1284,7 @@ def cancel_order(order_id):
         flash('Unauthorized action.', 'danger')
         return redirect(url_for('order.view_orders'))
     
-    if order.order_status not in ['payment_successful', 'pending']:
+    if order.order_status not in ['payment_successful, delivery pending', 'pending']:
         flash('This order cannot be canceled.', 'danger')
         return redirect(url_for('order.view_orders'))
     
@@ -1295,22 +1314,17 @@ def cancel_order(order_id):
 @login_required
 def request_refund(order_id):
     order = Order.query.get_or_404(order_id)
-    
+
     if order.user_id != current_user.user_id:
         flash('Unauthorized action.', 'danger')
         return redirect(url_for('order.view_orders'))
     
-    if order.order_status not in ['payment_successful', 'sent']:
-        flash('This order cannot be refunded.', 'danger')
+    if order.order_status != 'sent':
+        flash('Only orders that have been sent can request refunds.', 'danger')
         return redirect(url_for('order.view_orders'))
-    
+
     order.refund_requested = True
-    message = Message(
-        user_id=current_user.user_id,
-        order_id=order.order_id,
-        content=f"Refund requested for Order #{order.order_id}"
-    )
-    db.session.add(message)
     db.session.commit()
-    flash('Refund request submitted.', 'success')
+
+    flash('Refund request submitted. An admin will review it shortly.', 'success')
     return redirect(url_for('order.view_orders'))
