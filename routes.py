@@ -1242,7 +1242,7 @@ def stripe_success():
         message = Message(
             user_id=current_user.user_id,
             order_id=new_order.order_id,
-            content=f"Order #{new_order.order_id} has been created successfully. Total amount: ${total_amount}"
+            content=f"Order has been created successfully. Total amount: ${total_amount}"
         )
         db.session.add(message)
 
