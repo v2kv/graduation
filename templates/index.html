@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="text-center my-5">
-    <h1>Welcome to Our E-commerce Store</h1>
+    <h1>Welcome to Our <span>SOQKHANA</span> Store</h1>
     <p>Discover the best products at unbeatable prices!</p>
 </div>
 
@@ -21,28 +21,7 @@
         </select>
     </div>
 </div>
-<!-- Old style -->
-<!-- <div id="product-grid" class="row">
-    {% for item in items %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 shadow-sm" data-category="{{ item.category_id }}">
-                {% if item.images and item.images|length > 0 %}
-                    <img src="/static/{{ item.images[0].image_url }}" class="card-img-top" alt="{{ item.item_name }}">
 
-                {% else %}
-                    <img src="{{ url_for('static', filename='images/no_image.png') }}" class="card-img-top" alt="No Image">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ item.item_name }}</h5>
-                    <p class="card-text">{{ item.item_description[:100] }}...</p>
-                    <p class="card-text"><strong>${{ item.item_price }}</strong></p>
-                    <button class="btn btn-primary add-to-cart" data-item-id="{{ item.item_id }}">🛒 Add to Cart</button>
-                    <button class="btn btn-secondary add-to-wishlist" data-item-id="{{ item.item_id }}">⭐ Add to Wishlist</button>
-                </div>
-            </div>
-        </div>
-    {% endfor %}
-</div> -->
 <div class="wrapper">
     {% for item in items %}
     <div class="sing-card" data-category="{{ item.category_id }}">

@@ -5,7 +5,12 @@
 body{
     /* background: #414852; */
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-
+    min-height: 100vh;
+    position: relative;
+    margin: 0;
+    padding-bottom: 100px; 
+    box-sizing: border-box;
+    background-color: #fff6f8;
 }  
 
 
@@ -16,6 +21,9 @@ body{
 /* ***************************** */
         /* Start nav bar */
 /* ***************************** */
+.navbar{
+    background-color: #ffffff !important;
+}
 .navbar{
     box-shadow: 0 3px 9px 3px rgba(0, 0, 0, 0.1);
 }
@@ -89,15 +97,37 @@ letter-spacing: 4px;
 
 
 
-
-
+nav a{
+    text-decoration: none;
+}
 /* ***************************** */
         /* END Header */
 /* ***************************** */
-footer{
-    height: 50px !important;
+h1 span{
+font-style: italic;
+color: var(--pink);
+}
 
+
+
+/* ***************************** */
+        /* Start Footer */
+/* ***************************** */
+
+footer{
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    
+    background-color: white;
+    box-shadow: 0 3px 9px 3px rgba(0, 0, 0, 0.1);
 }
 footer p{
     color: var(--pink);
+    font-size: large;
+    padding-top: 10px;
 }
+/* ***************************** */
+        /* Start Footer */
+/* ***************************** */
