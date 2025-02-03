@@ -92,9 +92,9 @@
                 Select Image
             </button>
             <div id="image-preview" class="mt-3">
-                {% if item.image_url %}
+                {% if main_image and main_image.image_url %}
                 <img
-                    src="{{ item.image_url }}"
+                    src="{{ url_for('static', filename=main_image.image_url) }}"
                     alt="Current Image"
                     class="img-thumbnail"
                     style="max-width: 200px;"
@@ -175,7 +175,15 @@
         dropArea.classList.remove('border-primary');
         const file = e.dataTransfer.files[0];
         if (file) {
+            if (!allowedFile(file)) {
+                alert('Invalid image file. Allowed types: png, jpg, jpeg, gif.');
+                return;
+            }
             handleImageUpload(file);
+            // Update file input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            imageInput.files = dataTransfer.files;
         }
     });
 
@@ -186,6 +194,10 @@
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!allowedFile(file)) {
+                alert('Invalid image file. Allowed types: png, jpg, jpeg, gif.');
+                return;
+            }
             handleImageUpload(file);
         }
     });
@@ -196,6 +208,12 @@
             preview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px;" />`;
         };
         reader.readAsDataURL(file);
+    }
+
+    function allowedFile(file) {
+        const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif'];
+        const extension = file.name.split('.').pop().toLowerCase();
+        return allowedExtensions.includes(extension);
     }
 </script>
 {% endblock %}

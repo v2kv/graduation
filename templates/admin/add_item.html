@@ -160,7 +160,15 @@
         dropArea.classList.remove('border-primary');
         const file = e.dataTransfer.files[0];
         if (file) {
+            if (!allowedFile(file)) {
+                alert('Invalid image file. Allowed types: png, jpg, jpeg, gif.');
+                return;
+            }
             handleImageUpload(file);
+            // Update file input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            imageInput.files = dataTransfer.files;
         }
     });
 
@@ -171,6 +179,10 @@
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!allowedFile(file)) {
+                alert('Invalid image file. Allowed types: png, jpg, jpeg, gif.');
+                return;
+            }
             handleImageUpload(file);
         }
     });
@@ -181,6 +193,12 @@
             preview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px;" />`;
         };
         reader.readAsDataURL(file);
+    }
+
+    function allowedFile(file) {
+        const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif'];
+        const extension = file.name.split('.').pop().toLowerCase();
+        return allowedExtensions.includes(extension);
     }
 </script>
 {% endblock %}

@@ -35,7 +35,6 @@ def admin_required(func):
         return func(*args, **kwargs)
     return decorated_view
 
-
 @index_bp.route('/')
 def index():
     items = Item.query.options(joinedload(Item.images)).all()
@@ -107,8 +106,9 @@ def admin_dashboard():
 @login_required
 @admin_required
 def manage_categories():
-    categories = Category.query.all()
-    return render_template('admin/manage_categories.html', categories=categories)
+    # Get only parent categories (those without parents)
+    top_level_categories = Category.query.filter_by(parent_category_id=None).all()
+    return render_template('admin/manage_categories.html', categories=top_level_categories)
 
 @admin_bp.route('/admin/categories/add', methods=['GET', 'POST'])
 @login_required
@@ -167,92 +167,105 @@ def manage_items():
 
 @admin_bp.route('/admin/items/add', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def add_item():
     if request.method == 'POST':
-        item_name = request.form['item_name']
-        item_description = request.form['item_description']
-        item_price = request.form['item_price']
-        category_id = request.form['category_id']
-        tag_ids = request.form.getlist('tags')
-        
-        new_item = Item(item_name=item_name, item_description=item_description, item_price=item_price, category_id=category_id)
-        db.session.add(new_item)
-        db.session.commit()
+        try:
+            # Get item details
+            item_name = request.form['item_name']
+            item_description = request.form['item_description']
+            item_price = request.form['item_price']
+            category_id = request.form['category_id']
+            tag_ids = request.form.getlist('tags')
 
-        for tag_id in tag_ids:
-            item_tag = ItemTag(item_id=new_item.item_id, tag_id=tag_id)
-            db.session.add(item_tag)
+            # Create new item
+            new_item = Item(
+                item_name=item_name,
+                item_description=item_description,
+                item_price=item_price,
+                category_id=category_id
+            )
+            db.session.add(new_item)
+            db.session.commit()
 
-        if 'image' in request.files:
-            image = request.files['image']
-            if image and allowed_file(image.filename):
-                image_url = upload_image(image, new_item.item_id)
-                product_image = ProductImage(item_id=new_item.item_id, image_url=image_url, is_main=True)
-                db.session.add(product_image)
-            else:
-                flash('Invalid image file. Allowed file types are: png, jpg, jpeg, gif.', 'danger')
-                return redirect(url_for('admin.add_item'))
+            # Add tags
+            for tag_id in tag_ids:
+                item_tag = ItemTag(item_id=new_item.item_id, tag_id=tag_id)
+                db.session.add(item_tag)
 
-        db.session.commit()
+            # Handle image upload
+            if 'image' in request.files:
+                image = request.files['image']
+                if image and allowed_file(image.filename):
+                    image_url = upload_image(image, new_item.item_id)
+                    product_image = ProductImage(item_id=new_item.item_id, image_url=image_url, is_main=True)
+                    db.session.add(product_image)
+                else:
+                    flash('Invalid image file. Allowed file types are: png, jpg, jpeg, gif.', 'danger')
+                    return redirect(url_for('admin.add_item'))
 
-        flash('Item added successfully', 'success')
-        return redirect(url_for('admin.manage_items'))
-    
+            db.session.commit()
+            flash('Item added successfully!', 'success')
+            return redirect(url_for('admin.manage_items'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error: {str(e)}", "danger")
+            return redirect(url_for('admin.add_item'))
+
     categories = Category.query.all()
     tags = Tag.query.all()
     return render_template('admin/add_item.html', categories=categories, tags=tags)
 
 @admin_bp.route('/admin/items/<int:item_id>/edit', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def edit_item(item_id):
     item = Item.query.get_or_404(item_id)
     tags = Tag.query.all()
 
     if request.method == 'POST':
-        item.item_name = request.form['item_name']
-        item.item_description = request.form['item_description']
-        item.item_price = request.form['item_price']
-        item.category_id = request.form['category_id']
+        try:
+            # Update item details
+            item.item_name = request.form['item_name']
+            item.item_description = request.form['item_description']
+            item.item_price = request.form['item_price']
+            item.category_id = request.form['category_id']
 
-        # Remove existing item tags
-        ItemTag.query.filter_by(item_id=item.item_id).delete()
+            # Update tags
+            ItemTag.query.filter_by(item_id=item.item_id).delete()
+            selected_tag_ids = request.form.getlist('tags')
+            for tag_id in selected_tag_ids:
+                item_tag = ItemTag(item_id=item.item_id, tag_id=tag_id)
+                db.session.add(item_tag)
 
-        # Add selected tags
-        selected_tag_ids = request.form.getlist('tags')
-        for tag_id in selected_tag_ids:
-            item_tag = ItemTag(item_id=item.item_id, tag_id=tag_id)
-            db.session.add(item_tag)
+            # Handle image upload
+            if 'image' in request.files and request.files['image'].filename != '':
+                image = request.files['image']
+                if image and allowed_file(image.filename):
+                    # Delete existing main image
+                    main_image = ProductImage.query.filter_by(item_id=item.item_id, is_main=True).first()
+                    if main_image:
+                        delete_image(main_image.image_url)
+                        db.session.delete(main_image)
 
-        if 'image' in request.files:
-            image = request.files['image']
-            if image and allowed_file(image.filename):
-                # Delete existing main image from the file system
-                main_image = ProductImage.query.filter_by(item_id=item.item_id, is_main=True).first()
-                if main_image:
-                    delete_image(main_image.image_url)
-                
-                # Upload new main image
-                image_url = upload_image(image, item.item_id)
-                
-                # Remove existing main image from the database
-                ProductImage.query.filter_by(item_id=item.item_id, is_main=True).delete()
-                
-                # Add new main image to the database
-                product_image = ProductImage(item_id=item.item_id, image_url=image_url, is_main=True)
-                db.session.add(product_image)
-            else:
-                flash('Invalid image file. Allowed file types are: png, jpg, jpeg, gif.', 'danger')
-                return redirect(url_for('admin.edit_item', item_id=item_id))
-        
-        db.session.commit()
-        flash('Item updated successfully', 'success')
-        return redirect(url_for('admin.manage_items'))
-    
+                    # Upload new image
+                    image_url = upload_image(image, item.item_id)
+                    product_image = ProductImage(item_id=item.item_id, image_url=image_url, is_main=True)
+                    db.session.add(product_image)
+                else:
+                    flash('Invalid image file. Allowed file types are: png, jpg, jpeg, gif.', 'danger')
+                    return redirect(url_for('admin.edit_item', item_id=item_id))
+
+            db.session.commit()
+            flash('Item updated successfully!', 'success')
+            return redirect(url_for('admin.manage_items'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error: {str(e)}", "danger")
+            return redirect(url_for('admin.edit_item', item_id=item_id))
+
     categories = Category.query.all()
     item_tags = [tag.tag_id for tag in item.tags]
-    return render_template('admin/edit_item.html', item=item, categories=categories, tags=tags, item_tags=item_tags)
+    main_image = ProductImage.query.filter_by(item_id=item.item_id, is_main=True).first()
+    return render_template('admin/edit_item.html', item=item, categories=categories, tags=tags, item_tags=item_tags, main_image=main_image)
 
 @admin_bp.route('/admin/items/<int:item_id>/delete', methods=['POST'])
 @login_required
@@ -264,11 +277,12 @@ def delete_item(item_id):
     for image in item.images:
         delete_image(image.image_url)  # Remove the image from the file system
         db.session.delete(image)  # Explicitly delete the image from the database
-        reset_auto_increment(db, 'product_image', 'image_id')
+        reset_auto_increment(db, 'product_images', 'image_id')
 
     # Delete the item from the database
     db.session.delete(item)
     db.session.commit()
+    reset_auto_increment(db, 'items', 'item_id')
 
     flash('Item deleted successfully', 'success')
     return redirect(url_for('admin.manage_items'))
@@ -823,6 +837,28 @@ def delete_payment_method(payment_id):
 
     return redirect(url_for('user.user_payments'))
 
+
+# User Messages
+@user_bp.route('/user/messages')
+@login_required
+def user_messages():
+    messages = Message.query.filter_by(user_id=current_user.user_id).order_by(Message.created_at.desc()).all()
+    return render_template('user/messages.html', messages=messages)
+
+@user_bp.route('/user/messages/<int:message_id>/mark-read', methods=['POST'])
+@login_required
+def mark_message_read(message_id):
+    message = Message.query.get_or_404(message_id)
+    if message.user_id != current_user.user_id:
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('user.user_messages'))
+    
+    message.is_read = True
+    db.session.commit()
+    return redirect(url_for('user.user_messages'))
+
+# item routes
+
 @item_bp.route('/items')
 def item_list():
     items = Item.query.options(joinedload(Item.images)).all()
@@ -844,34 +880,24 @@ def search_items():
     if query:
         items_query = items_query.filter(Item.item_name.ilike(f'%{query}%'))
 
-    # Apply category filter
     if category_id:
-        items_query = items_query.filter_by(category_id=category_id)
+        # Get the selected category and all its child categories
+        def get_all_subcategories(category):
+            subcategories = category.subcategories
+            for sub in subcategories:
+                subcategories += get_all_subcategories(sub)
+            return subcategories
+
+        selected_category = Category.query.get(category_id)
+        if selected_category:
+            category_ids = [selected_category.category_id] + [
+                subcategory.category_id for subcategory in get_all_subcategories(selected_category)
+            ]
+            items_query = items_query.filter(Item.category_id.in_(category_ids))
 
     items = items_query.all()
     categories = Category.query.all()
-
     return render_template('item_list.html', items=items, categories=categories)
-
-# User Messages
-@user_bp.route('/user/messages')
-@login_required
-def user_messages():
-    messages = Message.query.filter_by(user_id=current_user.user_id).order_by(Message.created_at.desc()).all()
-    return render_template('user/messages.html', messages=messages)
-
-@user_bp.route('/user/messages/<int:message_id>/mark-read', methods=['POST'])
-@login_required
-def mark_message_read(message_id):
-    message = Message.query.get_or_404(message_id)
-    if message.user_id != current_user.user_id:
-        flash('Unauthorized action.', 'danger')
-        return redirect(url_for('user.user_messages'))
-    
-    message.is_read = True
-    db.session.commit()
-    return redirect(url_for('user.user_messages'))
-
 
 # Cart Routes
 @cart_bp.route('/cart')
