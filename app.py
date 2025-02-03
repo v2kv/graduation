@@ -59,4 +59,5 @@ def internal_server_error(error):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Create tables in MySQL
-    app.run(debug=True)
+    app.run(debug=True,
+            port=5501)
