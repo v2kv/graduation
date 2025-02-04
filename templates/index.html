@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="text-center my-5">
-    <h1>Welcome to Our <span>SOQKHANA</span> Store</h1>
+    <h1>Welcome to Our E-commerce Store</h1>
     <p>Discover the best products at unbeatable prices!</p>
 </div>
 
@@ -32,14 +32,13 @@
             <img src="{{ url_for('static', filename='images/no_image.png') }}" class="card-img-top" alt="No Image">
             {% endif %}
             <div class="overlay">
-               
                 <button class="btn btn-primary add-to-cart" data-item-id="{{ item.item_id }}">🛒 Add to Cart</button>
                 <button class="btn btn-secondary add-to-wishlist" data-item-id="{{ item.item_id }}">⭐ Add to Wishlist</button>
                 <a href="{{ url_for('item.item_detail', item_id=item.item_id) }}" class="btnn btn-primary mt-auto">View Details</a>
             </div>
         </div>
         <div class="info">
-            <h3 class="card-title" >{{ item.item_name }}</h3>
+            <h3 class="card-title">{{ item.item_name }}</h3>
             <p class="price">${{ item.item_price }}</p>
             <p class="card-text">{{ item.item_description[:100] }}...</p>
         </div>
@@ -52,38 +51,84 @@
         const searchBar = document.getElementById('search-bar');
         const filterCategory = document.getElementById('filter-category');
 
-        searchBar.addEventListener('input', filterItems);
+        // Attach event listeners
+        searchBar.addEventListener('input', searchItems);
         filterCategory.addEventListener('change', filterItems);
 
         function filterItems() {
+            const categoryId = filterCategory.value;
+
+            // Send AJAX request to filter items
+            fetch('/filter', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ category_id: categoryId }),
+            })
+                .then((response) => response.json())
+                .then((filteredItems) => {
+                    const wrapper = document.querySelector('.wrapper');
+                    wrapper.innerHTML = ''; // Clear current items
+
+                    // Dynamically render filtered items
+                    filteredItems.forEach((item) => {
+                        const card = document.createElement('div');
+                        card.classList.add('sing-card');
+                        card.setAttribute('data-category', item.category_id);
+                        card.innerHTML = `
+                            <div class="img-area">
+                                <img src="${
+                                    item.image_url
+                                        ? `/static/${item.image_url}` // Ensure the correct path for images
+                                        : '/static/images/no_image.png'
+                                }" alt="${item.name}">
+                                <div class="overlay">
+                                    <button class="btn btn-primary add-to-cart" data-item-id="${item.id}">🛒 Add to Cart</button>
+                                    <button class="btn btn-secondary add-to-wishlist" data-item-id="${item.id}">⭐ Add to Wishlist</button>
+                                    <a href="/item/${item.id}" class="btnn btn-primary mt-auto">View Details</a>
+                                </div>
+                            </div>
+                            <div class="info">
+                                <h3 class="card-title">${item.name}</h3>
+                                <p class="price">$${item.price}</p>
+                                <p class="card-text">${item.description.substring(0, 100)}...</p>
+                            </div>`;
+                        wrapper.appendChild(card);
+                    });
+
+                    // Reapply search functionality to dynamically updated items
+                    searchItems();
+                });
+        }
+
+        function searchItems() {
             const query = searchBar.value.toLowerCase();
-            const category = filterCategory.value;
 
-            document.querySelectorAll('.sing-card').forEach(card => {
+            // Select all cards and filter based on the query
+            document.querySelectorAll('.sing-card').forEach((card) => {
                 const title = card.querySelector('.card-title').textContent.toLowerCase();
-                const cardCategory = card.getAttribute('data-category');
-
                 const matchesQuery = query === '' || title.includes(query);
-                const matchesCategory = category === '' || cardCategory === category;
 
-                card.style.display = matchesQuery && matchesCategory ? '' : 'none';
+                // Show or hide cards based on the search query
+                card.style.display = matchesQuery ? '' : 'none';
             });
         }
 
-        document.querySelectorAll('.add-to-cart').forEach(button => {
+        document.querySelectorAll('.add-to-cart').forEach((button) => {
             button.addEventListener('click', function () {
                 const itemId = this.dataset.itemId;
                 fetch(`/cart/add/${itemId}`, { method: 'POST' })
-                    .then(response => alert('Item added to cart!'))
+                    .then(() => alert('Item added to cart!'))
                     .catch(() => alert('Error adding to cart'));
             });
         });
 
-        document.querySelectorAll('.add-to-wishlist').forEach(button => {
+        document.querySelectorAll('.add-to-wishlist').forEach((button) => {
             button.addEventListener('click', function () {
                 const itemId = this.dataset.itemId;
                 fetch(`/wishlist/add/${itemId}`, { method: 'POST' })
-                    .then(response => alert('Item added to wishlist!'))
+                    .then(() => alert('Item added to wishlist!'))
                     .catch(() => alert('Error adding to wishlist'));
             });
         });
