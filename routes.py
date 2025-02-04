@@ -62,8 +62,10 @@ def index():
         wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
         wishlist_count = len(wishlist.items) if wishlist else 0
 
-        # Count the total number of orders
-        orders_count = Order.query.filter_by(user_id=current_user.user_id).count()
+        # Count the total number of orders excluding delivered or cancelled statuses
+        orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
+            ~Order.order_status.in_(['delivered', 'cancelled'])
+        ).count()
 
         unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
 
@@ -85,7 +87,9 @@ def inject_counts():
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
         wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
         unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
-        orders_count = Order.query.filter_by(user_id=current_user.user_id).count()
+        orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
+            ~Order.order_status.in_(['delivered', 'cancelled'])
+        ).count()
 
         return {
             'cart_count': sum(item.quantity for item in cart.items) if cart else 0,
@@ -108,7 +112,9 @@ def get_counters():
     cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
     wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
     unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
-    orders_count = Order.query.filter_by(user_id=current_user.user_id).count()
+    orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
+        ~Order.order_status.in_(['delivered', 'cancelled'])
+    ).count()
 
     return jsonify({
         'cart_count': sum(item.quantity for item in cart.items) if cart else 0,
@@ -963,6 +969,16 @@ def mark_message_read(message_id):
     db.session.commit()
     return redirect(url_for('user.user_messages'))
 
+@user_bp.route('/user/messages/mark-all-read', methods=['POST'])
+@login_required
+def mark_all_messages_read():
+    messages = Message.query.filter_by(user_id=current_user.user_id, is_read=False).all()
+    for message in messages:
+        message.is_read = True
+    db.session.commit()
+    flash('All messages marked as read.', 'success')
+    return redirect(url_for('user.user_messages'))
+
 # item routes
 
 @item_bp.route('/items')
@@ -1002,8 +1018,8 @@ def add_to_cart(item_id):
         db.session.add(cart_item)
 
     db.session.commit()
-    flash('Item added to cart!', 'success')
-    return redirect(url_for('cart.view_cart'))
+    flash('Item added to cart!', 'success') 
+    return redirect(url_for('cart.view_cart')) 
 
 @cart_bp.route('/cart/update/<int:cart_item_id>', methods=['POST'])
 @login_required

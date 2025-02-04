@@ -6,6 +6,9 @@
 
     {% if messages %}
     <div class="list-group">
+        <form action="{{ url_for('user.mark_all_messages_read') }}" method="POST" style="margin-bottom: 20px;">
+            <button type="submit" class="btn btn-primary">Mark All as Read</button>
+        </form>
         {% for message in messages %}
         <div class="list-group-item {% if not message.is_read %}list-group-item-info{% endif %}">
             <div class="d-flex w-100 justify-content-between">
