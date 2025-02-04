@@ -49,7 +49,73 @@ def get_all_subcategories(category):
 def index():
     categories = Category.query.all()  # Fetch all categories for filtering
     items = Item.query.options(joinedload(Item.images)).all()  # Fetch all items by default
-    return render_template('index.html', items=items, categories=categories)
+
+    # Fetch counts for badges
+    cart_count = 0
+    wishlist_count = 0
+    orders_count = 0
+    unread_messages_count = 0
+    if current_user.is_authenticated:
+        cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+        cart_count = sum(item.quantity for item in cart.items) if cart else 0
+
+        wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+        wishlist_count = len(wishlist.items) if wishlist else 0
+
+        # Count the total number of orders
+        orders_count = Order.query.filter_by(user_id=current_user.user_id).count()
+
+        unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
+
+    return render_template(
+        'index.html',
+        items=items,
+        categories=categories,
+        cart_count=cart_count,
+        wishlist_count=wishlist_count,
+        orders_count=orders_count,
+        unread_messages_count=unread_messages_count
+    )
+
+
+# Inject counts into the global context to make them available in all templates
+@index_bp.app_context_processor
+def inject_counts():
+    if current_user.is_authenticated:
+        cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+        wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+        unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
+        orders_count = Order.query.filter_by(user_id=current_user.user_id).count()
+
+        return {
+            'cart_count': sum(item.quantity for item in cart.items) if cart else 0,
+            'wishlist_count': len(wishlist.items) if wishlist else 0,
+            'orders_count': orders_count,
+            'unread_messages_count': unread_messages_count
+        }
+    return {
+        'cart_count': 0,
+        'wishlist_count': 0,
+        'orders_count': 0,
+        'unread_messages_count': 0
+    }
+
+
+# API to get the counts dynamically
+@index_bp.route('/api/counters')
+@login_required
+def get_counters():
+    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+    wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+    unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
+    orders_count = Order.query.filter_by(user_id=current_user.user_id).count()
+
+    return jsonify({
+        'cart_count': sum(item.quantity for item in cart.items) if cart else 0,
+        'wishlist_count': len(wishlist.items) if wishlist else 0,
+        'orders_count': orders_count,
+        'unread_messages_count': unread_messages_count
+    })
 
 @index_bp.route('/filter', methods=['POST'])
 def filter_items():
