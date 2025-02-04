@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}SOQKHANA{% endblock %}</title>
+    <title>{% block title %}SOUQKHANA{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='layoutStyle.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='index_style.css') }}">
@@ -19,7 +19,7 @@
     <div class = "container">
         <a class = "navbar-brand d-flex justify-content-between align-items-center order-lg-0" href = "{{ url_for('index.index') }}">
             <img src = "{{ url_for('static', filename='images/icon.avif') }}" alt = "site icon">
-            <span class = "text-uppercase fw-lighter ms-2">SOQKHANA</span>
+            <span class = "text-uppercase fw-lighter ms-2">SOUQ KHANA</span>
         </a>
         {% if current_user.is_authenticated %}
         {% if current_user.role != 'admin' %}
@@ -27,21 +27,21 @@
             <a href="{{ url_for('cart.view_cart') }}">
 
                 <button type = "button" class = "btn position-relative">
-                    <i class = "fa fa-shopping-cart"></i>
+                    <i class = "fa fa-shopping-cart" title = "cart"></i>
                     <span class = "position-absolute top-0 start-100 translate-middle badge bg-primary">5</span>
                 </button>
             </a>
             <a href="{{ url_for('wishlist.view_wishlist') }}">
 
                 <button type = "button" class = "btn position-relative">
-                    <i class = "fa fa-heart"></i>
+                    <i class = "fa fa-heart" title = "wishlist"></i>
                     <span class = "position-absolute top-0 start-100 translate-middle badge bg-primary">2</span>
                 </button>
             </a>
             <a href="{{ url_for('order.view_orders') }}">
 
                 <button type = "button" class = "btn position-relative">
-                    <i class="fa-solid fa-cart-arrow-down"></i>
+                    <i class="fa-solid fa-cart-arrow-down" title = "orders" ></i>
                     <span class = "position-absolute top-0 start-100 translate-middle badge bg-primary">2</span>
                 </button>
             </a>
@@ -119,7 +119,7 @@
 <footer class="text-center">
     <div class="container">
 
-        <p>&copy; 2025 SOQKHANA Website</p>
+        <p>&copy; 2025 SOUQ KHANA Website</p>
     </div>
     
 </footer>

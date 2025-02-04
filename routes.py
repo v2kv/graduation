@@ -35,11 +35,51 @@ def admin_required(func):
         return func(*args, **kwargs)
     return decorated_view
 
+def get_all_subcategories(category):
+    """Helper function to recursively get IDs of all subcategories of a given category."""
+    subcategories = []
+    def gather_subcategories(cat):
+        for sub in cat.subcategories:
+            subcategories.append(sub)
+            gather_subcategories(sub)
+    gather_subcategories(category)
+    return subcategories
+
 @index_bp.route('/')
 def index():
-    items = Item.query.options(joinedload(Item.images)).all()
     categories = Category.query.all()  # Fetch all categories for filtering
+    items = Item.query.options(joinedload(Item.images)).all()  # Fetch all items by default
     return render_template('index.html', items=items, categories=categories)
+
+@index_bp.route('/filter', methods=['POST'])
+def filter_items():
+    """Handle the category filtering via AJAX."""
+    category_id = request.json.get('category_id')
+    if not category_id:
+        # If no category is selected, return all items
+        items = Item.query.options(joinedload(Item.images)).all()
+    else:
+        selected_category = Category.query.get(category_id)
+        if selected_category:
+            # Gather all subcategories of the selected category
+            all_subcategories = get_all_subcategories(selected_category)
+            category_ids = [selected_category.category_id] + [sub.category_id for sub in all_subcategories]
+            # Filter items belonging to the selected category or its subcategories
+            items = Item.query.filter(Item.category_id.in_(category_ids)).options(joinedload(Item.images)).all()
+        else:
+            items = []  # No items if the category is invalid
+
+    # Return the filtered items as JSON
+    return jsonify([
+        {
+            'id': item.item_id,
+            'name': item.item_name,
+            'price': str(item.item_price),
+            'description': item.item_description,
+            'image_url': item.images[0].image_url if item.images else None
+        }
+        for item in items
+    ])
 
 # Admin Routes
 @admin_bp.route('/admin/register/<secret_token>', methods=['GET', 'POST'])
@@ -869,35 +909,6 @@ def item_list():
 def item_detail(item_id):
     item = Item.query.options(joinedload(Item.images)).get_or_404(item_id)
     return render_template('item_detail.html', item=item)
-
-@item_bp.route('/items/search')
-def search_items():
-    query = request.args.get('q', '').strip().lower()  # Search query
-    category_id = request.args.get('category', '').strip()  # Category filter
-    items_query = Item.query.options(joinedload(Item.images))
-
-    # Apply search filter
-    if query:
-        items_query = items_query.filter(Item.item_name.ilike(f'%{query}%'))
-
-    if category_id:
-        # Get the selected category and all its child categories
-        def get_all_subcategories(category):
-            subcategories = category.subcategories
-            for sub in subcategories:
-                subcategories += get_all_subcategories(sub)
-            return subcategories
-
-        selected_category = Category.query.get(category_id)
-        if selected_category:
-            category_ids = [selected_category.category_id] + [
-                subcategory.category_id for subcategory in get_all_subcategories(selected_category)
-            ]
-            items_query = items_query.filter(Item.category_id.in_(category_ids))
-
-    items = items_query.all()
-    categories = Category.query.all()
-    return render_template('item_list.html', items=items, categories=categories)
 
 # Cart Routes
 @cart_bp.route('/cart')
