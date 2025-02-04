@@ -55,7 +55,7 @@ def index():
     wishlist_count = 0
     orders_count = 0
     unread_messages_count = 0
-    if current_user.is_authenticated:
+    if current_user.is_authenticated and current_user.role != "admin":
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
         cart_count = sum(item.quantity for item in cart.items) if cart else 0
 
@@ -83,7 +83,7 @@ def index():
 # Inject counts into the global context to make them available in all templates
 @index_bp.app_context_processor
 def inject_counts():
-    if current_user.is_authenticated:
+    if current_user.is_authenticated and current_user.role != "admin":
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
         wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
         unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
@@ -109,19 +109,21 @@ def inject_counts():
 @index_bp.route('/api/counters')
 @login_required
 def get_counters():
-    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
-    wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
-    unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
-    orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
-        ~Order.order_status.in_(['delivered', 'cancelled'])
-    ).count()
+    if current_user.is_authenticated and current_user.role != "admin":
+        cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+        wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+        unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
+        orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
+            ~Order.order_status.in_(['delivered', 'cancelled'])
+        ).count()
 
-    return jsonify({
-        'cart_count': sum(item.quantity for item in cart.items) if cart else 0,
-        'wishlist_count': len(wishlist.items) if wishlist else 0,
-        'orders_count': orders_count,
-        'unread_messages_count': unread_messages_count
-    })
+        return jsonify({
+            'cart_count': sum(item.quantity for item in cart.items) if cart else 0,
+            'wishlist_count': len(wishlist.items) if wishlist else 0,
+            'orders_count': orders_count,
+            'unread_messages_count': unread_messages_count
+        })
+    return None
 
 @index_bp.route('/filter', methods=['POST'])
 def filter_items():
