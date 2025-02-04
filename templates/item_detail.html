@@ -5,11 +5,11 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div>
+        <div class="item_img" >
             {% if item.images %}
-                <img src="{{ item.images[0].image_url }}" alt="{{ item.item_name }}" class="w-full">
+                <img width="200" src="/static/{{ item.images[0].image_url }}" alt="{{ item.item_name }}" class="w-full">
             {% else %}
-                <img src="https://via.placeholder.com/500x500" alt="Placeholder" class="w-full">
+                <img width="200" src="{{ url_for('static', filename='images/no_image.png')}}" alt="Placeholder" class="w-full">
             {% endif %}
         </div>
         <div>
