@@ -9,36 +9,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='index_style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='all.css') }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='images/icon.avif') }}">
+    {% block link %}{% endblock %}
 </head>
 <body>
-<!-- <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index.index') }}">E-commerce</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    
-                    {% if current_user.is_authenticated %}
-                    {% if current_user.role == 'admin' %}
-                          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">Dashboard</a></li>
-                          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_logout') }}">Logout</a></li>
-                          {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('user.user_dashboard') }}">Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link btn-icon" href="{{ url_for('cart.view_cart') }}">🛒 Cart</a></li>
-                        <li class="nav-item"><a class="nav-link btn-icon" href="{{ url_for('wishlist.view_wishlist') }}">⭐ Wishlist</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('order.view_orders') }}">Orders</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('user.user_logout') }}">Logout</a></li>
-                        {% endif %}
-                    {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('user.user_login') }}">Login</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('user.user_register') }}">Register</a></li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav> -->
 
 
    <!-- navbar -->

@@ -14,7 +14,10 @@ body{
 }  
 
 
-
+.loginbtn{
+    background-color: var(--pink) !important;
+    border: none;
+}
 .bg-primary{
     background-color:var(--pink) !important;
 }

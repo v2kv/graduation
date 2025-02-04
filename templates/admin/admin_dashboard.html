@@ -1,18 +1,170 @@
 {% extends "layout.html" %}
 
 {% block title %}Admin Dashboard{% endblock %}
-
+{% block link %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+{% endblock %}
 {% block content %}
-<div class="container">
+<div class="welcome">
     <h1 class="mt-5">Admin Dashboard</h1>
-    <p>Welcome, {{ current_user.username }}!</p>
-    <ul class="list-group">
-        <li class="list-group-item"><a href="{{ url_for('admin.manage_users') }}">Manage Users</a></li>
-        <li class="list-group-item"><a href="{{ url_for('admin.manage_orders') }}">Manage Orders</a></li>
-        <li class="list-group-item"><a href="{{ url_for('admin.manage_items') }}">Manage Items</a></li>
-        <li class="list-group-item"><a href="{{ url_for('admin.manage_tags') }}">Manage Tags</a></li>
-        <li class="list-group-item"><a href="{{ url_for('admin.manage_categories') }}">Manage Categories</a></li>
-        <li class="list-group-item"><a href="{{ url_for('admin.admin_logout') }}">Logout</a></li>
-    </ul>
+    <p>Welcome, <span><strong> {{ current_user.username }}!</strong></span></p>
+ 
 </div>
+<hr>
+
+<!-- 
+*****************************
+*****************************
+        START DASHBOARD
+*****************************
+*****************************
+-->
+
+<div class="dashboard">
+
+    <div class="container">
+        <div class="row ">
+            
+            <div class="col-xl-6 col-lg-6 cardio">
+                    <a href="{{ url_for('admin.manage_users') }}" class="dashboard-link">
+                    <div class="card l-bg-blue-dark">
+                        <div class="card-statistic-3 p-4">
+                            <div class="card-icon card-icon-large"><i class="fas fa-user"></i></div>
+                            <div class="mb-4">
+                                <h5 class="card-title mb-0">Manage Users</h5>
+                            </div>
+                            <div class="row align-items-center mb-2 d-flex">
+                                <div class="col-8">
+                                    <h2 class="d-flex align-items-center mb-0">
+                                        3,243 Users
+                                    </h2>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                    </div>
+                </a>
+                </div>
+                <div class="col-xl-6 col-lg-6 cardio">
+                    <a href="{{ url_for('admin.manage_orders') }}" class="dashboard-link">
+                    <div class="card l-bg-orange-dark">
+                        <div class="card-statistic-3 p-4">
+                            <div class="card-icon card-icon-large"><i class="fas fa-shopping-cart"></i></div>
+                            <div class="mb-4">
+                                <h5 class="card-title mb-0">Manage Order</h5>
+                            </div>
+                            <div class="row align-items-center mb-2 d-flex">
+                                <div class="col-8">
+                                    <h2 class="d-flex align-items-center mb-0">
+                                        10 Order
+                                    </h2>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                    </div>
+                </a>
+                </div>
+                <div class="col-xl-6 col-lg-6 cardio">
+                    <a href="{{ url_for('admin.manage_items') }}" class="dashboard-link">
+                    <div class="card l-bg-green-dark">
+                        <div class="card-statistic-3 p-4">
+                            <div class="card-icon card-icon-large"><i class="fas fa-solid fa-shirt"></i></div>
+                            <div class="mb-4">
+                                <h5 class="card-title mb-0">Manage Item</h5>
+                            </div>
+                            <div class="row align-items-center mb-2 d-flex">
+                                <div class="col-8">
+                                    <h2 class="d-flex align-items-center mb-0">
+                                        300 Items
+                                    </h2>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                    </div>
+                </a>
+                </div>
+                <div class="col-xl-6 col-lg-6 cardio">
+                    <a href="{{ url_for('admin.manage_tags') }}" class="dashboard-link">
+                    <div class="card l-bg-cherry">
+                        <div class="card-statistic-3 p-4">
+                            <div class="card-icon card-icon-large"><i class="fas fa-tags"></i></div>
+                            <div class="mb-4">
+                                <h5 class="card-title mb-0">Manage Tags</h5>
+                            </div>
+                            <div class="row align-items-center mb-2 d-flex">
+                                <div class="col-8">
+                                    <h2 class="d-flex align-items-center mb-0">
+                                        32 Tags
+                                    </h2>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                    </div>
+                </a>
+                </div>
+                <div class="col-xl-6 col-lg-6 cardio">
+                    <a href="{{ url_for('admin.manage_categories') }}" class="dashboard-link">
+                    <div class="card l-bg-cherry">
+                        <div class="card-statistic-3 p-4">
+                            <div class="card-icon card-icon-large"><i class="fas fa-bookmark"></i></div>
+                            <div class="mb-4">
+                                <h5 class="card-title mb-0">Manage Categories</h5>
+                            </div>
+                            <div class="row align-items-center mb-2 d-flex">
+                                <div class="col-8">
+                                    <h2 class="d-flex align-items-center mb-0">
+                                        7 Categories
+                                    </h2>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                    </div>
+                </a>
+                </div>
+            
+                <div class="col-xl-6 col-lg-6 cardio">
+                    <a href="{{ url_for('admin.admin_logout') }}" class="dashboard-link">
+                    <div class="card l-bg-red">
+                        <div class="card-statistic-3 p-4">
+                            <div class="card-icon card-icon-large"><i class="fas fa-arrow-right-from-bracket"></i></div>
+                            <div class="mb-4">
+                                <h5 class="card-title mb-0">Logout</h5>
+                            </div>
+                            <div class="row align-items-center mb-2 d-flex">
+                                <div class="col-8">
+                                    <h2 class="d-flex align-items-center mb-0">
+                                        EXIT
+                                    </h2>
+                                </div>
+                                
+                            </div>
+                            
+                        </div>
+                    </div>
+                </a>
+                </div>
+        </div>
+    </div>
+    
+</div>
+
+
+
+<!-- 
+*****************************
+*****************************
+        END DASHBOARD
+*****************************
+*****************************
+ -->
+
 {% endblock %}
