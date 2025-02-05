@@ -32,8 +32,8 @@
             <img src="{{ url_for('static', filename='images/no_image.png') }}" class="card-img-top" alt="No Image">
             {% endif %}
             <div class="overlay">
-                <button class="btn btn-primary add-to-cart" data-item-id="{{ item.item_id }}">🛒 Add to Cart</button>
-                <button class="btn btn-secondary add-to-wishlist" data-item-id="{{ item.item_id }}">⭐ Add to Wishlist</button>
+                <button onclick="updateCounters()" class="btn btn-primary add-to-cart" data-item-id="{{ item.item_id }}">🛒 Add to Cart</button>
+                <button onclick="updateCounters()" class="btn btn-secondary add-to-wishlist" data-item-id="{{ item.item_id }}">⭐ Add to Wishlist</button>
                 <a href="{{ url_for('item.item_detail', item_id=item.item_id) }}" class="btnn btn-primary mt-auto">View Details</a>
             </div>
         </div>
@@ -133,5 +133,18 @@
             });
         });
     });
+
+     // Fetch and update counters dynamically
+     function updateCounters() {
+        fetch('/api/counters')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('cart-badge').textContent = data.cart_count;
+                document.getElementById('wishlist-badge').textContent = data.wishlist_count;
+                document.getElementById('orders-badge').textContent = data.orders_count;
+                document.getElementById('messages-badge').textContent = data.unread_messages_count;
+            })
+            .catch(error => console.error('Error updating counters:', error));
+    }
 </script>
 {% endblock %}
