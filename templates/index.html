@@ -119,8 +119,7 @@
             button.addEventListener('click', function () {
                 const itemId = this.dataset.itemId;
                 fetch(`/cart/add/${itemId}`, { method: 'POST' })
-                    .then(() => alert('Item added to cart!'))
-                    updateCounters()
+                    .then(() => updateCounters())
                     .catch(() => alert('Error adding to cart'));
             });
         });
@@ -129,8 +128,8 @@
             button.addEventListener('click', function () {
                 const itemId = this.dataset.itemId;
                 fetch(`/wishlist/add/${itemId}`, { method: 'POST' })
-                    .then(() => alert('Item added to wishlist!'))
-                    updateCounters()
+                    .then(() => updateCounters())
+                    
                     .catch(() => alert('Error adding to wishlist'));
             });
         });
