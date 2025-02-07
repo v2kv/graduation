@@ -56,7 +56,7 @@ font-size: 32px;
     position: absolute;
     right: -5px;
     top: 20px;
-    opacity: 0.1;
+    opacity: 0.2;
 }
 
 .l-bg-cyan {
@@ -78,6 +78,7 @@ font-size: 32px;
     background: linear-gradient(135deg, #289cf5, #84c0ec) !important;
     color: #fff;
 }
-.cardio{
-max-width: 500px;
+.cardio i{
+position: relative;
+right: 10px;
 }
