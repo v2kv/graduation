@@ -1,7 +1,6 @@
 import os
 from flask import Blueprint, session, request, render_template, flash, redirect, url_for, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
-import pycountry # list of all countries for address
 import re # check phone number format
 import stripe # simulate payments
 from stripe.error import StripeError
@@ -645,11 +644,7 @@ def change_password():
         return redirect(url_for('user.user_dashboard'))
 
     return render_template('user/change_password.html')
-
-# Add Address         
-
-# Get a list of all countries from pycountry
-COUNTRIES = [country.name for country in pycountry.countries]
+       
 
 # Default country and Iraqi governorates
 DEFAULT_COUNTRY = "Iraq"
