@@ -30,36 +30,24 @@
         </div>
         <div class="form-group">
             <label for="country">Country</label>
-            <select name="country" id="country" class="form-control" required>
-                {% for country in countries %}
-                    <option value="{{ country }}" {% if country == address.country %}selected{% endif %}>
-                        {{ country }}
+            <input
+                type="text"
+                name="country"
+                id="country"
+                class="form-control"
+                value="Iraq"
+                readonly
+            >
+        </div>
+        <div class="form-group">
+            <label for="governorate">Governorate</label>
+            <select name="governorate" id="governorate" class="form-control" required>
+                {% for governorate in governorates %}
+                    <option value="{{ governorate }}" {% if governorate == address.governorate %}selected{% endif %}>
+                        {{ governorate }}
                     </option>
                 {% endfor %}
             </select>
-        </div>
-        {% if address.country == "Iraq" %}
-            <div class="form-group">
-                <label for="governerate">Governorate</label>
-                <select name="governerate" id="governerate" class="form-control" required>
-                    <option value="" disabled>Select a Governorate</option>
-                    {% for governorate in governorates %}
-                        <option value="{{ governorate }}" {% if governorate == address.governerate %}selected{% endif %}>
-                            {{ governorate }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-        {% endif %}
-        <div class="form-group">
-            <label for="postal_code">Postal Code</label>
-            <input
-                type="text"
-                name="postal_code"
-                id="postal_code"
-                class="form-control"
-                value="{{ address.postal_code }}"
-            >
         </div>
         <div class="form-group">
             <label for="phone_number">Phone Number</label>
@@ -80,6 +68,8 @@
                     name="is_default"
                     id="is_default"
                     class="form-check-input"
+                    value="True"
+                    {% if address.is_default %}checked{% endif %}
                 >
                 <label for="is_default" class="form-check-label">Set as Default</label>
             </div>
@@ -89,21 +79,7 @@
 </div>
 
 <script>
-    const countrySelect = document.getElementById("country");
-    const governerateGroup = document.getElementById("governerate-group");
     const phoneInput = document.getElementById("phone_number");
-
-    function updateFields() {
-        if (countrySelect.value === "Iraq") {
-            governerateGroup.style.display = "block";
-            phoneInput.placeholder = "07XXXXXXXXX";
-        } else {
-            governerateGroup.style.display = "none";
-            phoneInput.placeholder = "";
-        }
-    }
-
-    countrySelect.addEventListener("change", updateFields);
-    window.onload = updateFields;
+    phoneInput.placeholder = "07XXXXXXXXX";
 </script>
 {% endblock %}

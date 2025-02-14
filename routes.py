@@ -10,6 +10,7 @@ from models import Admin, User, Item, ShoppingCart, CartItem, Wishlist, Wishlist
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import IntegrityError
 from db import reset_auto_increment, allowed_file, upload_image, delete_image # functions I defined in db.py
 
 
@@ -665,11 +666,10 @@ def add_address():
     if request.method == 'POST':
         address_line = request.form['address_line']
         city = request.form['city']
-        country = request.form['country']
-        postal_code = request.form['postal_code']
+        country = "Iraq"  # Set country to Iraq
         phone_number = request.form['phone_number'].strip()  # Remove spaces
-        governerate = request.form.get('governerate')
-        is_default = 'is_default' in request.form
+        governorate = request.form.get('governorate')
+        is_default = 'is_default' in request.form  # Check if the checkbox is checked
 
         # Debugging: Log the phone number input
         print(f"DEBUG: Phone Number Input: '{phone_number}'")
@@ -677,26 +677,21 @@ def add_address():
         # Ensure phone number contains only digits and has a length of 11
         if not phone_number.isdigit() or len(phone_number) != 11:
             flash("Phone number must contain exactly 11 numeric digits.", "danger")
-            return render_template('user/add_address.html', countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+            return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
 
         # Validate phone number for Iraq
-        if country == "Iraq":
-            iraq_phone_pattern = r"^07\d{9}$"  # Matches exactly 07XXXXXXXXX (11 digits)
-            if not re.match(iraq_phone_pattern, phone_number):
-                flash("Invalid phone number format for Iraq. Use format: 07XXXXXXXXX (11 digits).", "danger")
-                return render_template('user/add_address.html', countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+        iraq_phone_pattern = r"^07\d{9}$"  # Matches exactly 07XXXXXXXXX (11 digits)
+        if not re.match(iraq_phone_pattern, phone_number):
+            flash("Invalid phone number format for Iraq. Use format: 07XXXXXXXXX (11 digits).", "danger")
+            return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
 
-        # Handle governerate for Iraq
-        if country == "Iraq" and not governerate:
+        # Handle governorate for Iraq
+        if not governorate:
             flash("Governorate is required for Iraq.", "danger")
-            return render_template('user/add_address.html', countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+            return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
 
-        # Set governerate to None for non-Iraq countries
-        if country != "Iraq":
-            governerate = None
-
-        # Automatically set the first address as default
-        if not Address.query.filter_by(user_id=current_user.user_id).count():
+        # Automatically set the first address as default if no default exists
+        if not Address.query.filter_by(user_id=current_user.user_id, is_default=True).count():
             is_default = True
 
         # Unset default for other addresses if this is set as default
@@ -707,9 +702,8 @@ def add_address():
             user_id=current_user.user_id,
             address_line=address_line,
             city=city,
-            governerate=governerate,
+            governorate=governorate,
             country=country,
-            postal_code=postal_code,
             phone_number=phone_number,
             is_default=is_default
         )
@@ -724,8 +718,7 @@ def add_address():
             flash(f"An error occurred: {str(e)}", "danger")
             return redirect(url_for('user.add_address'))
 
-    # Default to Iraq for new addresses
-    return render_template('user/add_address.html', countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country="Iraq")
+    return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
 
 # Edit Address
 @user_bp.route('/user/address/<int:address_id>/edit', methods=['GET', 'POST'])
@@ -741,10 +734,9 @@ def edit_address(address_id):
     if request.method == 'POST':
         address_line = request.form['address_line']
         city = request.form['city']
-        country = request.form['country']
-        postal_code = request.form['postal_code']
+        country = "Iraq"  # Set country to Iraq
         phone_number = request.form['phone_number'].strip()  # Remove spaces
-        governerate = request.form.get('governerate')
+        governorate = request.form.get('governorate')
         is_default = 'is_default' in request.form
 
         # Debugging: Log the phone number input
@@ -753,23 +745,18 @@ def edit_address(address_id):
         # Ensure phone number contains only digits and has a length of 11
         if not phone_number.isdigit() or len(phone_number) != 11:
             flash("Phone number must contain exactly 11 numeric digits.", "danger")
-            return render_template('user/edit_address.html', address=address, countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+            return render_template('user/edit_address.html', address=address, governorates=IRAQ_GOVERNORATES)
 
         # Validate phone number for Iraq
-        if country == "Iraq":
-            iraq_phone_pattern = r"^07\d{9}$"  # Matches exactly 07XXXXXXXXX (11 digits)
-            if not re.match(iraq_phone_pattern, phone_number):
-                flash("Invalid phone number format for Iraq. Use format: 07XXXXXXXXX (11 digits).", "danger")
-                return render_template('user/edit_address.html', address=address, countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
+        iraq_phone_pattern = r"^07\d{9}$"  # Matches exactly 07XXXXXXXXX (11 digits)
+        if not re.match(iraq_phone_pattern, phone_number):
+            flash("Invalid phone number format for Iraq. Use format: 07XXXXXXXXX (11 digits).", "danger")
+            return render_template('user/edit_address.html', address=address, governorates=IRAQ_GOVERNORATES)
 
-        # Handle governerate for Iraq
-        if country == "Iraq" and not governerate:
+        # Handle governorate for Iraq
+        if not governorate:
             flash("Governorate is required for Iraq.", "danger")
-            return render_template('user/edit_address.html', address=address, countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=country)
-
-        # Set governerate to None for non-Iraq countries
-        if country != "Iraq":
-            governerate = None
+            return render_template('user/edit_address.html', address=address, governorates=IRAQ_GOVERNORATES)
 
         # Unset default for other addresses if this is set as default
         if is_default:
@@ -778,9 +765,8 @@ def edit_address(address_id):
         # Update address fields
         address.address_line = address_line
         address.city = city
-        address.governerate = governerate
+        address.governorate = governorate
         address.country = country
-        address.postal_code = postal_code
         address.phone_number = phone_number
         address.is_default = is_default
 
@@ -793,7 +779,7 @@ def edit_address(address_id):
             flash(f"An error occurred: {str(e)}", "danger")
             return redirect(url_for('user.edit_address', address_id=address_id))
 
-    return render_template('user/edit_address.html', address=address, countries=COUNTRIES, governorates=IRAQ_GOVERNORATES, selected_country=address.country)
+    return render_template('user/edit_address.html', address=address, governorates=IRAQ_GOVERNORATES)
 
 # Set Default Address
 @user_bp.route('/user/address/<int:address_id>/set-default', methods=['POST'])
@@ -835,6 +821,12 @@ def delete_address(address_id):
         db.session.commit()
         reset_auto_increment(db, 'addresses', 'address_id')
         flash("Address deleted successfully!", "success")
+    except IntegrityError as e:
+        db.session.rollback()
+        if "foreign key constraint fails" in str(e):
+            flash("Cannot delete address. It is associated with one or more orders.", "danger")
+        else:
+            flash(f"An error occurred: {str(e)}", "danger")
     except Exception as e:
         db.session.rollback()
         flash(f"An error occurred: {str(e)}", "danger")

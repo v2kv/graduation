@@ -47,9 +47,8 @@ class Address(db.Model):
     user = db.relationship('User', backref=db.backref('addresses', lazy=True))
     address_line = db.Column(db.String(100), nullable=False)
     city = db.Column(db.String(50), nullable=False)
-    governerate = db.Column(db.String(50), nullable=True)
+    governorate = db.Column(db.String(50), nullable=True)
     country = db.Column(db.String(50), nullable=False)
-    postal_code = db.Column(db.String(20), nullable=False)
     phone_number = db.Column(db.String(20), nullable=False)
     is_default = db.Column(db.Boolean, nullable=False, default=False)
 
