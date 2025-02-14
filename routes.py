@@ -588,7 +588,7 @@ def user_login():
             # Set user type to user in the session
             session['user_type'] = 'user'
             flash('Login successful!', 'success')
-            return redirect(url_for('user.user_dashboard'))
+            return redirect(url_for('index.index'))
 
         flash('Invalid username or password', 'danger')
 
