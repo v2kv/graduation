@@ -30,33 +30,23 @@
         </div>
         <div class="form-group">
             <label for="country">Country</label>
-            <select name="country" id="country" class="form-control" required>
-                {% for country in countries %}
-                    <option value="{{ country }}" {% if country == selected_country %}selected{% endif %}>
-                        {{ country }}
-                    </option>
-                {% endfor %}
-            </select>
+            <input
+                type="text"
+                name="country"
+                id="country"
+                class="form-control"
+                value="Iraq"
+                readonly
+            >
         </div>
-        <div class="form-group" id="governerate-group" style="display: none;">
-            <label for="governerate">Governorate</label>
-            <select name="governerate" id="governerate" class="form-control">
+        <div class="form-group">
+            <label for="governorate">Governorate</label>
+            <select name="governorate" id="governorate" class="form-control" required>
                 <option value="">Select a Governorate</option>
                 {% for governorate in governorates %}
                     <option value="{{ governorate }}">{{ governorate }}</option>
                 {% endfor %}
             </select>
-        </div>
-        <div class="form-group">
-            <label for="postal_code">Postal Code</label>
-            <input
-                type="text"
-                name="postal_code"
-                id="postal_code"
-                class="form-control"
-                required
-                placeholder="Enter postal code"
-            >
         </div>
         <div class="form-group">
             <label for="phone_number">Phone Number</label>
@@ -66,7 +56,7 @@
                 id="phone_number"
                 class="form-control"
                 required
-                placeholder=""
+                placeholder="07XXXXXXXXX"
             >
         </div>
         <div class="form-check">
@@ -75,29 +65,11 @@
                 name="is_default"
                 id="is_default"
                 class="form-check-input"
+                value="True"
             >
             <label for="is_default" class="form-check-label">Set as Default</label>
         </div>
         <button type="submit" class="btn btn-primary mt-3">Save Address</button>
     </form>
 </div>
-
-<script>
-    const countrySelect = document.getElementById("country");
-    const governerateGroup = document.getElementById("governerate-group");
-    const phoneInput = document.getElementById("phone_number");
-
-    function updateFields() {
-        if (countrySelect.value === "Iraq") {
-            governerateGroup.style.display = "block";
-            phoneInput.placeholder = "07XXXXXXXXX";
-        } else {
-            governerateGroup.style.display = "none";
-            phoneInput.placeholder = "";
-        }
-    }
-
-    countrySelect.addEventListener("change", updateFields);
-    window.onload = updateFields;
-</script>
 {% endblock %}
