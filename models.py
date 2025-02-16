@@ -205,7 +205,7 @@ class Order(db.Model):
 #     variation = db.relationship('ItemVariation')
 #     price = db.Column(db.Numeric(10, 2), nullable=False)
 
-class Message(db.Model):
+class Messages(db.Model):
     __tablename__ = 'messages'
     message_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)

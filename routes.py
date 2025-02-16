@@ -5,14 +5,12 @@ import re # check phone number format
 import stripe # simulate payments
 from stripe.error import StripeError
 from db import db
-from models import Admin, User, Item, ShoppingCart, CartItem, Wishlist, WishlistItem, Order, Category, Tag, ItemTag, ProductImage, Address, PaymentMethod, Message
+from models import Admin, User, Item, ShoppingCart, CartItem, Wishlist, WishlistItem, Order, Category, Tag, ItemTag, ProductImage, Address, PaymentMethod, Messages
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from db import reset_auto_increment, allowed_file, upload_image, delete_image # functions I defined in db.py
-
-
 
 
 # Blueprints
@@ -67,7 +65,7 @@ def index():
             ~Order.order_status.in_(['delivered', 'cancelled'])
         ).count()
 
-        unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
+        unread_messages_count = Messages.query.filter_by(user_id=current_user.user_id, is_read=False).count()
 
     return render_template(
         'index.html',
@@ -86,7 +84,7 @@ def inject_counts():
     if current_user.is_authenticated and current_user.role != "admin":
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
         wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
-        unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
+        unread_messages_count = Messages.query.filter_by(user_id=current_user.user_id, is_read=False).count()
         orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
             ~Order.order_status.in_(['delivered', 'cancelled'])
         ).count()
@@ -112,7 +110,7 @@ def get_counters():
     if current_user.is_authenticated and current_user.role != "admin":
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
         wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
-        unread_messages_count = Message.query.filter_by(user_id=current_user.user_id, is_read=False).count()
+        unread_messages_count = Messages.query.filter_by(user_id=current_user.user_id, is_read=False).count()
         orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
             ~Order.order_status.in_(['delivered', 'cancelled'])
         ).count()
@@ -457,7 +455,7 @@ def update_order_status(order_id):
         return redirect(url_for('admin.manage_orders'))
     
     order.order_status = new_status
-    message = Message(
+    message = Messages(
         user_id=order.user_id,
         order_id=order.order_id,
         content=f"Order status updated to {new_status.replace('_', ' ').title()}"
@@ -485,7 +483,7 @@ def process_refund(order_id):
             
             order.order_status = 'refunded'
             order.refund_status = 'approved'
-            message = Message(
+            message = Messages(
                 user_id=order.user_id,
                 order_id=order.order_id,
                 content=f"Your refund request for Order #{order.order_id} has been approved and processed."
@@ -500,7 +498,7 @@ def process_refund(order_id):
         
         order.refund_status = 'denied'
         order.refund_denial_reason = denial_reason
-        message = Message(
+        message = Messages(
             user_id=order.user_id,
             order_id=order.order_id,
             content=f"Your refund request for Order #{order.order_id} has been denied. Reason: {denial_reason}"
@@ -943,13 +941,13 @@ def delete_payment_method(payment_id):
 @user_bp.route('/user/messages')
 @login_required
 def user_messages():
-    messages = Message.query.filter_by(user_id=current_user.user_id).order_by(Message.created_at.desc()).all()
+    messages = Messages.query.filter_by(user_id=current_user.user_id).order_by(Messages.created_at.desc()).all()
     return render_template('user/messages.html', messages=messages)
 
 @user_bp.route('/user/messages/<int:message_id>/mark-read', methods=['POST'])
 @login_required
 def mark_message_read(message_id):
-    message = Message.query.get_or_404(message_id)
+    message = Messages.query.get_or_404(message_id)
     if message.user_id != current_user.user_id:
         flash('Unauthorized action.', 'danger')
         return redirect(url_for('user.user_messages'))
@@ -961,7 +959,7 @@ def mark_message_read(message_id):
 @user_bp.route('/user/messages/mark-all-read', methods=['POST'])
 @login_required
 def mark_all_messages_read():
-    messages = Message.query.filter_by(user_id=current_user.user_id, is_read=False).all()
+    messages = Messages.query.filter_by(user_id=current_user.user_id, is_read=False).all()
     for message in messages:
         message.is_read = True
     db.session.commit()
@@ -1346,7 +1344,7 @@ def stripe_success():
 
         db.session.add(new_order)
 
-        message = Message(
+        message = Messages(
             user_id=current_user.user_id,
             order_id=new_order.order_id,
             content=f"Order has been created successfully. Total amount: ${total_amount}"
@@ -1404,7 +1402,7 @@ def cancel_order(order_id):
         )
         
         order.order_status = 'cancelled'
-        message = Message(
+        message = Messages(
             user_id=current_user.user_id,
             order_id=order.order_id,
             content=f"Order #{order.order_id} has been cancelled and refund processed."
