@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block title %}Redirecting to Stripe{% endblock %}
+
+{% block content %}
+<div class="text-center mt-5">
+    <h2>Redirecting to Stripe Checkout...</h2>
+    <p>Please wait while we process your request.</p>
+    <form id="stripeForm" action="{{ url_for('order.stripe_checkout_session') }}" method="POST" class="d-none">
+    </form>
+</div>
+<script>
+    document.getElementById('stripeForm').submit();
+</script>
+{% endblock %}

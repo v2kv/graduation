@@ -1196,13 +1196,12 @@ def checkout():
         session['address_id'] = address_id
         session['payment_method_id'] = payment_method_id
 
-        # Redirect to the Stripe Checkout route
-        return redirect(url_for('order.stripe_checkout_session'))
+        return render_template('redirect_to_stripe.html')
 
     return render_template('checkout.html', cart=cart, addresses=addresses, payment_methods=payment_methods)
 
 
-@order_bp.route('/stripe_checkout_session', methods=['GET'])
+@order_bp.route('/stripe_checkout_session', methods=['POST'])
 @login_required
 def stripe_checkout_session():
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
