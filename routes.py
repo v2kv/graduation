@@ -4,13 +4,16 @@ from flask_login import login_user, logout_user, login_required, current_user
 import re # check phone number format
 import stripe # simulate payments
 from stripe.error import StripeError
-from db import db
+from db import db, mail
 from models import Admin, User, Item, ShoppingCart, CartItem, Wishlist, WishlistItem, Order, Category, Tag, ItemTag, ProductImage, Address, PaymentMethod, Messages
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from db import reset_auto_increment, allowed_file, upload_image, delete_image # functions I defined in db.py
+from itsdangerous import TimedSerializer as Serializer
+from itsdangerous import SignatureExpired, BadSignature
+from flask_mail import Message
 
 
 # Blueprints
@@ -32,6 +35,15 @@ def admin_required(func):
             return redirect(url_for('index'))
         return func(*args, **kwargs)
     return decorated_view
+
+def send_confirmation_email(email, token, user_type):
+    msg = Message('Confirm Your Email', recipients=[email])
+    if user_type == 'admin':
+        confirmation_url = url_for('admin.confirm_email', token=token, _external=True)
+    else:
+        confirmation_url = url_for('user.confirm_email', token=token, _external=True)
+    msg.html = render_template('confirmation.html', confirmation_url=confirmation_url)
+    mail.send(msg)
 
 def get_all_subcategories(category):
     """Helper function to recursively get IDs of all subcategories of a given category."""
@@ -174,10 +186,40 @@ def admin_register(secret_token):
         db.session.add(new_admin)
         db.session.commit()
 
-        flash('Admin registered successfully!', 'success')
+        # Generate email confirmation token
+        s = Serializer(current_app.config['SECRET_KEY'])
+        token = s.dumps({'admin_id': new_admin.admin_id})
+
+        # Send confirmation email
+        send_confirmation_email(email, token, 'admin')
+
+        flash('Admin registered successfully! Please check your email to confirm your account.', 'success')
         return redirect(url_for('admin.admin_login'))
 
     return render_template('admin/admin_register.html', secret_token=secret_token)
+
+@admin_bp.route('/admin/confirm/<token>')
+def confirm_email(token):
+    s = Serializer(current_app.config['SECRET_KEY'])
+    try:
+        data = s.loads(token, max_age=3600)
+    except (SignatureExpired, BadSignature):
+        flash('The confirmation link is invalid or has expired.', 'danger')
+        return redirect(url_for('admin.admin_login'))
+
+    admin = Admin.query.get(data['admin_id'])
+    if not admin:
+        flash('Admin not found.', 'danger')
+        return redirect(url_for('admin.admin_login'))
+
+    if admin.email_verified:
+        flash('Account already confirmed. Please login.', 'success')
+    else:
+        admin.email_verified = True
+        db.session.commit()
+        flash('Your account has been confirmed. You can now log in.', 'success')
+
+    return redirect(url_for('admin.admin_login'))
 
 @admin_bp.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -187,6 +229,9 @@ def admin_login():
 
         admin = Admin.query.filter_by(username=username).first()
         if admin and admin.verify_password(password):
+            if not admin.email_verified:
+                flash('Please confirm your email before logging in.', 'warning')
+                return redirect(url_for('admin.admin_login'))
             login_user(admin)
             # Set user type to admin in the session
             session['user_type'] = 'admin'
@@ -569,10 +614,40 @@ def user_register():
         db.session.add(new_user)
         db.session.commit()
 
-        flash('User registered successfully!', 'success')
+        # Generate email confirmation token
+        s = Serializer(current_app.config['SECRET_KEY'])
+        token = s.dumps({'user_id': new_user.user_id})
+
+        # Send confirmation email
+        send_confirmation_email(email, token, 'user')
+
+        flash('User registered successfully! Please check your email to confirm your account.', 'success')
         return redirect(url_for('user.user_login'))
 
     return render_template('user/user_register.html')
+
+@user_bp.route('/user/confirm/<token>')
+def confirm_email(token):
+    s = Serializer(current_app.config['SECRET_KEY'])
+    try:
+        data = s.loads(token, max_age=3600)
+    except (SignatureExpired, BadSignature):
+        flash('The confirmation link is invalid or has expired.', 'danger')
+        return redirect(url_for('user.user_login'))
+
+    user = User.query.get(data['user_id'])
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('user.user_login'))
+
+    if user.email_verified:
+        flash('Account already confirmed. Please login.', 'success')
+    else:
+        user.email_verified = True
+        db.session.commit()
+        flash('Your account has been confirmed. You can now log in.', 'success')
+
+    return redirect(url_for('user.user_login'))
 
 @user_bp.route('/user/login', methods=['GET', 'POST'])
 def user_login():
@@ -582,6 +657,9 @@ def user_login():
 
         user = User.query.filter_by(username=username).first()
         if user and user.verify_password(password):
+            if not user.email_verified:
+                flash('Please confirm your email before logging in.', 'warning')
+                return redirect(url_for('user.user_login'))
             login_user(user)
             # Set user type to user in the session
             session['user_type'] = 'user'

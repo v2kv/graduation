@@ -3,8 +3,13 @@ from flask import current_app
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
+from flask_mail import Mail
 
 db = SQLAlchemy()
+
+
+mail = Mail()
+
 
 def reset_auto_increment(db, table_name, primary_key='id'):
     max_id = db.session.query(text(f"MAX({primary_key}) FROM {table_name}")).scalar()

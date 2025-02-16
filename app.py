@@ -1,10 +1,10 @@
 from flask import Flask, render_template, current_app
 from config import Config
-from db import db
+from db import db, mail
 from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp, wishlist_bp
 from flask_login import LoginManager
 from dotenv import load_dotenv
-from flask_mail import Mail
+# from flask_mail import Mail
 import logging
 load_dotenv()  # Load environment variables from .env
 app = Flask(__name__)
@@ -18,7 +18,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'user.user_login'
 
-mail = Mail(app)
+mail.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
