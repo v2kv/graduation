@@ -643,11 +643,8 @@ def user_register():
             # Send confirmation email
             send_confirmation_email(email, token, 'user')
 
-            flash('User registered successfully! Please check your email to confirm your account.', 'success')
-            return redirect(url_for('user.user_login'))
-        else:
-            return redirect(url_for("index.index"))
-
+        flash('User registered successfully! Please check your email to confirm your account.', 'success')
+        return redirect(url_for('user.user_login'))
 
     # Render the registration template for GET requests
     return render_template('user/user_register.html')
@@ -683,23 +680,21 @@ def user_login():
             username = request.form['username']
             password = request.form['password']
 
-            user = User.query.filter_by(username=username).first()
-            if user and user.verify_password(password):
-                if not user.email_verified:
-                    flash('Please confirm your email before logging in.', 'warning')
-                    return redirect(url_for('user.user_login'))
-                login_user(user)
-                # Set user type to user in the session
-                session['user_type'] = 'user'
-                flash('Login successful!', 'success')
-                return redirect(url_for('index.index'))
+        user = User.query.filter_by(username=username).first()
+        if user and user.verify_password(password):
+            if not user.email_verified:
+                flash('Please confirm your email before logging in.', 'warning')
+                return redirect(url_for('user.user_login'))
+            login_user(user)
+            # Set user type to user in the session
+            session['user_type'] = 'user'
+            flash('Login successful!', 'success')
+            return redirect(url_for('index.index'))
 
-            flash('Invalid username or password', 'danger')
+        flash('Invalid username or password', 'danger')
 
-        # Render the login template for GET requests
-        return render_template('user/user_login.html', show_footer=True)
-    else:
-        return redirect(url_for('index.index'))
+    # Render the login template for GET requests
+    return render_template('user/user_login.html')
 
 @user_bp.route('/login/google')
 def login_with_google():
