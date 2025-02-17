@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Category{% endblock %}
+
+{% block content %}
+<h2>Edit Category</h2>
+<form method="POST">
+    <div class="mb-3">
+        <label for="category_name" class="form-label">Category Name</label>
+        <input type="text" name="category_name" id="category_name" class="form-control" value="{{ category.category_name }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="parent_category_id" class="form-label">Parent Category</label>
+        <select name="parent_category_id" id="parent_category_id" class="form-select">
+            <option value="">None</option>
+            {% for parent_category in parent_categories %}
+            <option value="{{ parent_category.category_id }}" {% if parent_category.category_id == category.parent_category_id %}selected{% endif %}>{{ parent_category.category_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Update Category</button>
+</form>
+{% endblock %}

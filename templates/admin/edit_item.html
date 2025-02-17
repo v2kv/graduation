@@ -1,0 +1,219 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<h1 class="mb-4 text-center">Edit Item</h1>
+<form action="{{ url_for('admin.edit_item', item_id=item.item_id) }}" method="POST" enctype="multipart/form-data" class="p-4 bg-light rounded shadow">
+    <div class="mb-3">
+        <label for="item_name" class="form-label">Item Name:</label>
+        <input
+            type="text"
+            name="item_name"
+            id="item_name"
+            value="{{ item.item_name }}"
+            class="form-control"
+            required
+        />
+    </div>
+    <div class="mb-3">
+        <label for="item_description" class="form-label">Item Description:</label>
+        <textarea
+            name="item_description"
+            id="item_description"
+            rows="4"
+            class="form-control"
+            required
+        >{{ item.item_description }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label for="item_price" class="form-label">Item Price:</label>
+        <input
+            type="number"
+            name="item_price"
+            id="item_price"
+            step="0.01"
+            value="{{ item.item_price }}"
+            class="form-control"
+            required
+        />
+    </div>
+    <div class="mb-3">
+        <label for="category_id" class="form-label">Category:</label>
+        <select
+            name="category_id"
+            id="category_id"
+            class="form-select"
+            required
+        >
+            {% for category in categories %}
+            <option
+                value="{{ category.category_id }}"
+                {% if category.category_id == item.category_id %}selected{% endif %}
+            >
+                {{ category.category_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="mb-3">
+        <label for="tags" class="form-label">Tags (Drag and Drop to Reorder):</label>
+        <ul id="tags-list" class="list-group">
+            {% for tag in tags %}
+            <li
+                class="list-group-item draggable"
+                data-id="{{ tag.tag_id }}"
+                draggable="true"
+            >
+                <input
+                    type="checkbox"
+                    name="tags"
+                    value="{{ tag.tag_id }}"
+                    {% if tag.tag_id in item_tags %}checked{% endif %}
+                />
+                {{ tag.tag_name }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="mb-3">
+        <label for="image" class="form-label">Image:</label>
+        <div class="d-flex flex-column align-items-center border rounded p-3" id="image-drop-area">
+            <span class="text-muted mb-2">Drag and drop an image or click to select</span>
+            <input
+                type="file"
+                name="image"
+                id="image"
+                class="form-control visually-hidden"
+            />
+            <button
+                type="button"
+                id="select-image"
+                class="btn btn-secondary btn-sm"
+            >
+                Select Image
+            </button>
+            <div id="image-preview" class="mt-3">
+                {% if main_image and main_image.image_url %}
+                <img
+                    src="{{ url_for('static', filename=main_image.image_url) }}"
+                    alt="Current Image"
+                    class="img-thumbnail"
+                    style="max-width: 200px;"
+                />
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="text-center">
+        <button type="submit" class="btn btn-primary">Update Item</button>
+    </div>
+</form>
+
+<script>
+    // Drag-and-drop functionality for tags
+    const tagsList = document.getElementById('tags-list');
+    let draggedItem = null;
+
+    tagsList.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('draggable')) {
+            draggedItem = e.target;
+            e.target.classList.add('dragging');
+        }
+    });
+
+    tagsList.addEventListener('dragend', (e) => {
+        if (e.target.classList.contains('draggable')) {
+            e.target.classList.remove('dragging');
+            draggedItem = null;
+        }
+    });
+
+    tagsList.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(tagsList, e.clientY);
+        if (afterElement == null) {
+            tagsList.appendChild(draggedItem);
+        } else {
+            tagsList.insertBefore(draggedItem, afterElement);
+        }
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [
+            ...container.querySelectorAll('.draggable:not(.dragging)'),
+        ];
+        return draggableElements.reduce(
+            (closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset, element: child };
+                } else {
+                    return closest;
+                }
+            },
+            { offset: Number.NEGATIVE_INFINITY }
+        ).element;
+    }
+
+    // Drag-and-drop functionality for image upload
+    const dropArea = document.getElementById('image-drop-area');
+    const imageInput = document.getElementById('image');
+    const preview = document.getElementById('image-preview');
+    const selectImageButton = document.getElementById('select-image');
+
+    dropArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropArea.classList.add('border-primary');
+    });
+
+    dropArea.addEventListener('dragleave', () => {
+        dropArea.classList.remove('border-primary');
+    });
+
+    dropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropArea.classList.remove('border-primary');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            if (!allowedFile(file)) {
+                alert('Invalid image file. Allowed types: png, jpg, jpeg, gif.');
+                return;
+            }
+            handleImageUpload(file);
+            // Update file input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            imageInput.files = dataTransfer.files;
+        }
+    });
+
+    selectImageButton.addEventListener('click', () => {
+        imageInput.click();
+    });
+
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (!allowedFile(file)) {
+                alert('Invalid image file. Allowed types: png, jpg, jpeg, gif.');
+                return;
+            }
+            handleImageUpload(file);
+        }
+    });
+
+    function handleImageUpload(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            preview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px;" />`;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function allowedFile(file) {
+        const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif'];
+        const extension = file.name.split('.').pop().toLowerCase();
+        return allowedExtensions.includes(extension);
+    }
+</script>
+{% endblock %}

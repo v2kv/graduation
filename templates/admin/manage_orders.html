@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4">Manage Orders</h2>
+    
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>User</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>#{{ order.order_id }}</td>
+                    <td>{{ order.user.username }}</td>
+                    <td>{{ order.order_status|title }}</td>
+                    <td>${{ order.total_amount }}</td>
+                    <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <!-- Status Update Button -->
+                        <button type="button" class="btn btn-sm btn-primary mb-1" data-bs-toggle="modal" data-bs-target="#statusModal{{order.order_id}}">
+                            Update Status
+                        </button>
+
+                        <!-- Refund Processing Button -->
+                        {% if order.refund_requested and order.order_status == 'sent' %}
+                        <button type="button" class="btn btn-sm btn-warning mb-1" data-bs-toggle="modal" data-bs-target="#refundModal{{order.order_id}}">
+                            Process Refund
+                        </button>
+                        {% endif %}
+
+                        <!-- Status Update Modal -->
+                        <div class="modal fade" id="statusModal{{order.order_id}}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Update Order Status</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form action="{{ url_for('admin.update_order_status', order_id=order.order_id) }}" method="POST">
+                                            <select name="status" class="form-select mb-3" required>
+                                                <option value="sent">Sent</option>
+                                                <option value="delivered">Delivered</option>
+                                                <option value="cancelled">Cancelled</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-primary">Save changes</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Refund Processing Modal -->
+                        <div class="modal fade" id="refundModal{{order.order_id}}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Process Refund Request</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form action="{{ url_for('admin.process_refund', order_id=order.order_id) }}" method="POST">
+                                            <div class="mb-3">
+                                                <label class="form-label">Action</label>
+                                                <select name="action" class="form-select" required>
+                                                    <option value="approve">Approve Refund</option>
+                                                    <option value="deny">Deny Refund</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Denial Reason</label>
+                                                <textarea name="denial_reason" class="form-control"></textarea>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">Submit</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Address{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Edit Address</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label for="address_line">Address Line</label>
+            <input
+                type="text"
+                name="address_line"
+                id="address_line"
+                class="form-control"
+                value="{{ address.address_line }}"
+                required
+            >
+        </div>
+        <div class="form-group">
+            <label for="city">City</label>
+            <input
+                type="text"
+                name="city"
+                id="city"
+                class="form-control"
+                value="{{ address.city }}"
+                required
+            >
+        </div>
+        <div class="form-group">
+            <label for="country">Country</label>
+            <input
+                type="text"
+                name="country"
+                id="country"
+                class="form-control"
+                value="Iraq"
+                readonly
+            >
+        </div>
+        <div class="form-group">
+            <label for="governorate">Governorate</label>
+            <select name="governorate" id="governorate" class="form-control" required>
+                {% for governorate in governorates %}
+                    <option value="{{ governorate }}" {% if governorate == address.governorate %}selected{% endif %}>
+                        {{ governorate }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="phone_number">Phone Number</label>
+            <input
+                type="text"
+                name="phone_number"
+                id="phone_number"
+                class="form-control"
+                value="{{ address.phone_number }}"
+                required
+            >
+        </div>
+        <!-- Show "Set as Default" only if not already the default address -->
+        {% if not address.is_default %}
+            <div class="form-check">
+                <input
+                    type="checkbox"
+                    name="is_default"
+                    id="is_default"
+                    class="form-check-input"
+                    value="True"
+                    {% if address.is_default %}checked{% endif %}
+                >
+                <label for="is_default" class="form-check-label">Set as Default</label>
+            </div>
+        {% endif %}
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+</div>
+
+<script>
+    const phoneInput = document.getElementById("phone_number");
+    phoneInput.placeholder = "07XXXXXXXXX";
+</script>
+{% endblock %}

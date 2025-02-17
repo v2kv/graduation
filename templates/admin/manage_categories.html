@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block title %}Manage Categories{% endblock %}
+
+{% block content %}
+<h2>Manage Categories</h2>
+<a href="{{ url_for('admin.add_category') }}" class="btn btn-primary mb-3">Add Category</a>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Category Name</th>
+            <th>Parent Category</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for category in categories recursive %}
+            <tr {% if not category.parent_category %}class="table-primary"{% endif %}>
+                <td> {{ category.category_id }} </td>
+                <td>
+                    {% if category.subcategories %}
+                        <strong>{{ category.category_name }}</strong>
+                    {% else %}
+                        {{ category.category_name }}
+                    {% endif %}
+                </td>
+                <td>{{ category.parent_category.category_name if category.parent_category else 'None' }}</td>
+                <td>
+                    <a href="{{ url_for('admin.edit_category', category_id=category.category_id) }}" class="btn btn-sm btn-primary">Edit</a>
+                    <form action="{{ url_for('admin.delete_category', category_id=category.category_id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this category?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% if category.subcategories %}
+                <tr>
+                    <td colspan="3" class="pl-4">
+                        <table class="table table-bordered">
+                            <tbody>
+                                {{ loop(category.subcategories) }}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

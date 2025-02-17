@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4">Messages</h2>
+
+    {% if messages %}
+    <div class="list-group">
+        <form action="{{ url_for('user.mark_all_messages_read') }}" method="POST" style="margin-bottom: 20px;">
+            <button type="submit" class="btn btn-primary">Mark All as Read</button>
+        </form>
+        {% for message in messages %}
+        <div class="list-group-item {% if not message.is_read %}list-group-item-info{% endif %}">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">
+                    {% if message.order_id %}
+                    Order #{{ message.order_id }}
+                    {% else %}
+                    System Message
+                    {% endif %}
+                </h5>
+                <small>{{ message.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            </div>
+            <p class="mb-1">{{ message.content }}</p>
+            
+            {% if not message.is_read %}
+            <form action="{{ url_for('user.mark_message_read', message_id=message.message_id) }}" 
+                  method="POST" class="mt-2">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Mark as Read</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No messages found.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

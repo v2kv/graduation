@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ item.item_name }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="item_img" >
+            {% if item.images %}
+                <img width="200" src="/static/{{ item.images[0].image_url }}" alt="{{ item.item_name }}" class="w-full">
+            {% else %}
+                <img width="200" src="{{ url_for('static', filename='images/no_image.png')}}" alt="Placeholder" class="w-full">
+            {% endif %}
+        </div>
+        <div>
+            <h1 class="text-3xl font-bold mb-4">{{ item.item_name }}</h1>
+            <p class="text-gray-600 mb-4">{{ item.item_description }}</p>
+            <div class="mb-4">
+                <span class="text-xl font-bold">Price: ${{ item.item_price }}</span>
+            </div>
+            <form action="{{ url_for('cart.add_to_cart', item_id=item.item_id) }}" method="POST">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md text-lg font-semibold">Add to Cart</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

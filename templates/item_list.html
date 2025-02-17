@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block title %}Items{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">All Items</h1>
+<div class="row">
+    {% for item in items %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                {% if item.images and item.images|length > 0 %}
+                    <img src="{{ url_for('static', filename=item.images[0].image_url) }}" class="card-img-top" alt="{{ item.item_name }}">
+                {% else %}
+                    <img src="{{ url_for('static', filename='images/no_image.png') }}" class="card-img-top" alt="No Image">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.item_name }}</h5>
+                    <p class="card-text">{{ item.item_description[:100] }}...</p>
+                    <button class="btn btn-primary add-to-cart" data-item-id="{{ item.item_id }}">🛒 Add to Cart</button>
+                    <button class="btn btn-secondary add-to-wishlist" data-item-id="{{ item.item_id }}">⭐ Add to Wishlist</button>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
