@@ -14,6 +14,7 @@ from db import reset_auto_increment, allowed_file, upload_image, delete_image # 
 from itsdangerous import TimedSerializer as Serializer
 from itsdangerous import SignatureExpired, BadSignature
 from flask_mail import Message
+from flask_dance.contrib.google import google
 
 
 # Blueprints
@@ -624,6 +625,49 @@ def user_register():
         flash('User registered successfully! Please check your email to confirm your account.', 'success')
         return redirect(url_for('user.user_login'))
 
+    # Check if the user is already logged in with Google
+    if google.authorized:
+        resp = google.get("/oauth2/v1/userinfo")
+        if resp.ok:
+            google_info = resp.json()
+            google_id = google_info["id"]
+            email = google_info["email"]
+            first_name = google_info.get("given_name", "")
+            last_name = google_info.get("family_name", "")
+
+            user = User.query.filter_by(google_id=google_id).first()
+            if user:
+                login_user(user)
+                session['user_type'] = 'user'
+                flash('Login successful!', 'success')
+                return redirect(url_for('index.index'))
+            else:
+                # Generate a unique username
+                username = email.split('@')[0]
+                counter = 1
+                while User.query.filter_by(username=username).first():
+                    username = f"{email.split('@')[0]}{counter}"
+                    counter += 1
+
+                new_user = User(
+                    username=username,
+                    first_name=first_name,
+                    last_name=last_name,
+                    user_email=email,
+                    email_verified=True,
+                    google_id=google_id
+                )
+                db.session.add(new_user)
+                db.session.commit()
+
+                login_user(new_user)
+                session['user_type'] = 'user'
+                flash('Registration successful!', 'success')
+                return redirect(url_for('index.index'))
+    else:
+        # If not authorized, redirect to the Google login URL
+        return redirect(url_for("google.login"))
+
     return render_template('user/user_register.html')
 
 @user_bp.route('/user/confirm/<token>')
@@ -668,11 +712,69 @@ def user_login():
 
         flash('Invalid username or password', 'danger')
 
+    # Check if the user is already logged in with Google
+    if google.authorized:
+        resp = google.get("/oauth2/v1/userinfo")
+        if resp.ok:
+            google_info = resp.json()
+            google_id = google_info["id"]
+            email = google_info["email"]
+
+            user = User.query.filter_by(google_id=google_id).first()
+            if user:
+                login_user(user)
+                session['user_type'] = 'user'
+                flash('Login successful!', 'success')
+                return redirect(url_for('index.index'))
+            else:
+                # User doesn't exist, redirect to registration page
+                flash('Please register before logging in with Google.', 'warning')
+                return redirect(url_for('user.user_register'))
+    else:
+        # If not authorized, redirect to the Google login URL
+        return redirect(url_for("google.login"))
+
     return render_template('user/user_login.html')
+
+@user_bp.route('/google-login')
+def google_login():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+
+    resp = google.get("/oauth2/v1/userinfo")
+    if resp.ok:
+        google_info = resp.json()
+        google_id = google_info["id"]
+        email = google_info["email"]
+
+        user = User.query.filter_by(google_id=google_id).first()
+        if user:
+            login_user(user)
+            session['user_type'] = 'user'
+            flash('Login successful!', 'success')
+            return redirect(url_for('index.index'))
+        else:
+            # User doesn't exist, redirect to registration page
+            session['google_info'] = google_info
+            flash('Please register to complete your login.', 'info')
+            return redirect(url_for('user.user_register'))
+
+    flash('Google login failed. Please try again.', 'danger')
+    return redirect(url_for('user.user_login'))
 
 @user_bp.route('/user/logout')
 @login_required
 def user_logout():
+    if google.authorized:
+        token = google.token["access_token"]
+        resp = google.post(
+            "https://accounts.google.com/o/oauth2/revoke",
+            params={"token": token},
+            headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
+        if resp.status_code == 200:
+            del google.token
+
     logout_user()
     flash('You have been logged out.', 'success')
     return redirect(url_for('index.index'))

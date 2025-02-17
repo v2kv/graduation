@@ -28,11 +28,12 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(50))
     role = db.Column(db.String(20), nullable=False,default="user")
     user_email = db.Column(db.String(100), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
     stripe_customer_id = db.Column(db.String(255), nullable=True)
+    google_id = db.Column(db.String(255), unique=True, nullable=True)
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
