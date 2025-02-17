@@ -625,52 +625,7 @@ def user_register():
         flash('User registered successfully! Please check your email to confirm your account.', 'success')
         return redirect(url_for('user.user_login'))
 
-    # Check if the user is already logged in with Google
-    if google.authorized:
-        try:
-            resp = google.get("/oauth2/v1/userinfo")
-            if not resp.ok:
-                raise Exception("Failed to fetch user info from Google.")
-            
-            google_info = resp.json()
-            google_id = google_info["id"]
-            email = google_info["email"]
-            first_name = google_info.get("given_name", "")
-            last_name = google_info.get("family_name", "")
-
-            user = User.query.filter_by(google_id=google_id).first()
-            if user:
-                login_user(user)
-                session['user_type'] = 'user'
-                flash('Login successful!', 'success')
-                return redirect(url_for('index.index'))
-            else:
-                # Generate a unique username
-                username = email.split('@')[0]
-                counter = 1
-                while User.query.filter_by(username=username).first():
-                    username = f"{email.split('@')[0]}{counter}"
-                    counter += 1
-
-                new_user = User(
-                    username=username,
-                    first_name=first_name,
-                    last_name=last_name,
-                    user_email=email,
-                    email_verified=True,
-                    google_id=google_id
-                )
-                db.session.add(new_user)
-                db.session.commit()
-
-                login_user(new_user)
-                session['user_type'] = 'user'
-                flash('Registration successful!', 'success')
-                return redirect(url_for('index.index'))
-        except Exception as e:
-            flash(f"An error occurred: {str(e)}", "danger")
-            return redirect(url_for("google.login"))
-    
+    # Render the registration template for GET requests
     return render_template('user/user_register.html')
 
 @user_bp.route('/user/confirm/<token>')
@@ -715,32 +670,64 @@ def user_login():
 
         flash('Invalid username or password', 'danger')
 
-    # Check if the user is already logged in with Google
-    if google.authorized:
-        try:
-            resp = google.get("/oauth2/v1/userinfo")
-            if not resp.ok:
-                raise Exception("Failed to fetch user info from Google.")
-            
-            google_info = resp.json()
-            google_id = google_info["id"]
-            email = google_info["email"]
-
-            user = User.query.filter_by(google_id=google_id).first()
-            if user:
-                login_user(user)
-                session['user_type'] = 'user'
-                flash('Login successful!', 'success')
-                return redirect(url_for('index.index'))
-            else:
-                # User doesn't exist, redirect to registration page
-                flash('Please register before logging in with Google.', 'warning')
-                return redirect(url_for('user.user_register'))
-        except Exception as e:
-            flash(f"An error occurred: {str(e)}", "danger")
-            return redirect(url_for("google.login"))
-    
+    # Render the login template for GET requests
     return render_template('user/user_login.html')
+
+@user_bp.route('/login/google')
+def login_with_google():
+    # Trigger Google OAuth login
+    return redirect(url_for("google.login"))
+
+
+@user_bp.route('/user/google/callback')
+def google_callback():
+    if not google.authorized:
+        flash("Google authorization failed. Please try again.", "danger")
+        return redirect(url_for('user.user_login'))
+
+    try:
+        resp = google.get("/oauth2/v1/userinfo")
+        if not resp.ok:
+            raise Exception("Failed to fetch user info from Google.")
+
+        google_info = resp.json()
+        google_id = google_info["id"]
+        email = google_info["email"]
+        first_name = google_info.get("given_name", "")
+        last_name = google_info.get("family_name", "")
+
+        user = User.query.filter_by(google_id=google_id).first()
+        if user:
+            login_user(user)
+            session['user_type'] = 'user'
+            flash('Login successful!', 'success')
+            return redirect(url_for('index.index'))
+        else:
+            # Generate a unique username
+            username = email.split('@')[0]
+            counter = 1
+            while User.query.filter_by(username=username).first():
+                username = f"{email.split('@')[0]}{counter}"
+                counter += 1
+
+            new_user = User(
+                username=username,
+                first_name=first_name,
+                last_name=last_name,
+                user_email=email,
+                email_verified=True,
+                google_id=google_id
+            )
+            db.session.add(new_user)
+            db.session.commit()
+
+            login_user(new_user)
+            session['user_type'] = 'user'
+            flash('Registration successful!', 'success')
+            return redirect(url_for('index.index'))
+    except Exception as e:
+        flash(f"An error occurred: {str(e)}", "danger")
+        return redirect(url_for("user.user_login"))
 
 
 @user_bp.route('/user/logout')
