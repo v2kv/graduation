@@ -40,6 +40,7 @@ google_bp = make_google_blueprint(
     client_id=app.config['GOOGLE_CLIENT_ID'],
     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
     scope=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"],
+    offline=True,
     redirect_url=app.config['GOOGLE_REDIRECT_URI'],
     redirect_to="user.user_register"
 )

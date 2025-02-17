@@ -627,8 +627,11 @@ def user_register():
 
     # Check if the user is already logged in with Google
     if google.authorized:
-        resp = google.get("/oauth2/v1/userinfo")
-        if resp.ok:
+        try:
+            resp = google.get("/oauth2/v1/userinfo")
+            if not resp.ok:
+                raise Exception("Failed to fetch user info from Google.")
+            
             google_info = resp.json()
             google_id = google_info["id"]
             email = google_info["email"]
@@ -664,10 +667,10 @@ def user_register():
                 session['user_type'] = 'user'
                 flash('Registration successful!', 'success')
                 return redirect(url_for('index.index'))
-    else:
-        # If not authorized, redirect to the Google login URL
-        return redirect(url_for("google.login"))
-
+        except Exception as e:
+            flash(f"An error occurred: {str(e)}", "danger")
+            return redirect(url_for("google.login"))
+    
     return render_template('user/user_register.html')
 
 @user_bp.route('/user/confirm/<token>')
@@ -714,8 +717,11 @@ def user_login():
 
     # Check if the user is already logged in with Google
     if google.authorized:
-        resp = google.get("/oauth2/v1/userinfo")
-        if resp.ok:
+        try:
+            resp = google.get("/oauth2/v1/userinfo")
+            if not resp.ok:
+                raise Exception("Failed to fetch user info from Google.")
+            
             google_info = resp.json()
             google_id = google_info["id"]
             email = google_info["email"]
@@ -730,37 +736,12 @@ def user_login():
                 # User doesn't exist, redirect to registration page
                 flash('Please register before logging in with Google.', 'warning')
                 return redirect(url_for('user.user_register'))
-    else:
-        # If not authorized, redirect to the Google login URL
-        return redirect(url_for("google.login"))
-
+        except Exception as e:
+            flash(f"An error occurred: {str(e)}", "danger")
+            return redirect(url_for("google.login"))
+    
     return render_template('user/user_login.html')
 
-@user_bp.route('/google-login')
-def google_login():
-    if not google.authorized:
-        return redirect(url_for("google.login"))
-
-    resp = google.get("/oauth2/v1/userinfo")
-    if resp.ok:
-        google_info = resp.json()
-        google_id = google_info["id"]
-        email = google_info["email"]
-
-        user = User.query.filter_by(google_id=google_id).first()
-        if user:
-            login_user(user)
-            session['user_type'] = 'user'
-            flash('Login successful!', 'success')
-            return redirect(url_for('index.index'))
-        else:
-            # User doesn't exist, redirect to registration page
-            session['google_info'] = google_info
-            flash('Please register to complete your login.', 'info')
-            return redirect(url_for('user.user_register'))
-
-    flash('Google login failed. Please try again.', 'danger')
-    return redirect(url_for('user.user_login'))
 
 @user_bp.route('/user/logout')
 @login_required
@@ -778,6 +759,7 @@ def user_logout():
     logout_user()
     flash('You have been logged out.', 'success')
     return redirect(url_for('index.index'))
+
 
 # user dashboard routes
 
