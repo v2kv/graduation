@@ -59,7 +59,9 @@ def get_all_subcategories(category):
 @index_bp.route('/')
 def index():
     categories = Category.query.all()  # Fetch all categories for filtering
-    items = Item.query.options(joinedload(Item.images)).all()  # Fetch all items by default
+    # items = Item.query.options(joinedload(Item.images)).all()  # Fetch all items by default
+    #By default it orderd in ascending way;
+    items = Item.query.options(joinedload(Item.images)).order_by(Item.item_name.asc()).all()
 
     # Fetch counts for badges
     cart_count = 0
