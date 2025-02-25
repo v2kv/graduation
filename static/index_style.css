@@ -12,7 +12,7 @@ body{
     flex-wrap: wrap;
     justify-content: center;
     gap: 1px;
-    margin: 6% auto 0;
+    margin: 30px auto 30% auto;
     }
     .sing-card{
     position: relative;

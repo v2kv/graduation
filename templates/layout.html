@@ -1,120 +1,325 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}SOUQKHANA{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='layoutStyle.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='index_style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='all.css') }}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='images/icon.avif') }}">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='layoutStyle.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='index_style.css') }}"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='all.css') }}" />
+    <link
+      rel="shortcut icon"
+      href="{{ url_for('static', filename='images/icon.avif') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='footerstyle.css') }}"
+    />
     {% block link %}{% endblock %}
-</head>
-<body>
-   <!-- Navbar -->
-   <nav class="navbar navbar-expand-lg navbar-light bg-white py-4 top">
-    <div class="container">
-        <a class="navbar-brand d-flex justify-content-between align-items-center order-lg-0" href="{{ url_for('index.index') }}">
-            <img src="{{ url_for('static', filename='images/icon.avif') }}" alt="site icon">
-            <span class="text-uppercase fw-lighter ms-2">SOUQ KHANA</span>
+  </head>
+  <body>
+    
+    <nav class="navbar navbar-expand-lg navbar-light bg-white py-4 top">
+      <div class="container">
+        <a
+          class="navbar-brand d-flex justify-content-between align-items-center order-lg-0"
+          href="{{ url_for('index.index') }}"
+        >
+          <img
+            src="{{ url_for('static', filename='images/icon.avif') }}"
+            alt="site icon"
+          />
+          <span class="text-uppercase fw-lighter ms-2">SOUQ KHANA</span>
         </a>
-        {% if current_user.is_authenticated %}
-        {% if current_user.role != 'admin' %}
+        {% if current_user.is_authenticated %} {% if current_user.role !=
+        'admin' %}
         <div class="order-lg-2 nav-btns">
-            <a href="{{ url_for('cart.view_cart') }}">
-                <button type="button" class="btn position-relative">
-                    <i class="fa fa-shopping-cart" title="cart"></i>
-                    <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge bg-primary">{{ cart_count }}</span>
-                </button>
-            </a>
-            <a href="{{ url_for('wishlist.view_wishlist') }}">
-                <button type="button" class="btn position-relative">
-                    <i class="fa fa-heart" title="wishlist"></i>
-                    <span id="wishlist-badge" class="position-absolute top-0 start-100 translate-middle badge bg-primary">{{ wishlist_count }}</span>
-                </button>
-            </a>
-            <a href="{{ url_for('order.view_orders') }}">
-                <button type="button" class="btn position-relative">
-                    <i class="fa-solid fa-cart-arrow-down" title="orders"></i>
-                    <span id="orders-badge" class="position-absolute top-0 start-100 translate-middle badge bg-primary">{{ orders_count }}</span>
-                </button>
-            </a>
-            <a href="{{ url_for('user.user_messages') }}">
-                <button type="button" class="btn position-relative">
-                    <i class="fa-solid fa-message" title = "messages" ></i>
-                    <span id="messages-badge" class="position-absolute top-0 start-100 translate-middle badge bg-primary">{{ unread_messages_count }}</span>
-                </button>
-            </a>
-            <div id="flash-messages" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 1050; max-width: 90%;"></div>
-        {% endif %}
-        {% endif %}
+          <a href="{{ url_for('cart.view_cart') }}">
+            <button type="button" class="btn position-relative">
+              <i class="fa fa-shopping-cart" title="cart"></i>
+              <span
+                id="cart-badge"
+                class="position-absolute top-0 start-100 translate-middle badge bg-primary"
+                >{{ cart_count }}</span
+              >
+            </button>
+          </a>
+          <a href="{{ url_for('wishlist.view_wishlist') }}">
+            <button type="button" class="btn position-relative">
+              <i class="fa fa-heart" title="wishlist"></i>
+              <span
+                id="wishlist-badge"
+                class="position-absolute top-0 start-100 translate-middle badge bg-primary"
+                >{{ wishlist_count }}</span
+              >
+            </button>
+          </a>
+          <a href="{{ url_for('order.view_orders') }}">
+            <button type="button" class="btn position-relative">
+              <i class="fa-solid fa-cart-arrow-down" title="orders"></i>
+              <span
+                id="orders-badge"
+                class="position-absolute top-0 start-100 translate-middle badge bg-primary"
+                >{{ orders_count }}</span
+              >
+            </button>
+          </a>
+          <a href="{{ url_for('user.user_messages') }}">
+            <button type="button" class="btn position-relative">
+              <i class="fa-solid fa-message" title="messages"></i>
+              <span
+                id="messages-badge"
+                class="position-absolute top-0 start-100 translate-middle badge bg-primary"
+                >{{ unread_messages_count }}</span
+              >
+            </button>
+          </a>
+          <div
+            id="flash-messages"
+            class="position-fixed top-0 start-50 translate-middle-x mt-3"
+            style="z-index: 1050; max-width: 90%"
+          ></div>
+          {% endif %} {% endif %}
         </div>
-        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-            <span class="navbar-toggler-icon"></span>
+        <button
+          class="navbar-toggler border-0"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navMenu"
+        >
+          <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse order-lg-1" id="navMenu">
-            <ul class="navbar-nav mx-auto text-center">
-                {% if current_user.is_authenticated %}
-                {% if current_user.role == 'admin' %}
-                <li class="nav-item px-2 py-2">
-                    <a class="nav-link text-uppercase text-dark" href="{{ url_for('admin.admin_dashboard') }}">Dashboard</a>
-                </li>
-                <li class="nav-item px-2 py-2">
-                    <a class="nav-link text-uppercase text-dark" href="{{ url_for('admin.admin_logout') }}">Logout</a>
-                </li>
-                {% else %}
-                <li class="nav-item px-2 py-2">
-                    <a class="nav-link text-uppercase text-dark" href="{{ url_for('user.user_dashboard') }}">Dashboard</a>
-                </li>
-                <li class="nav-item px-2 py-2">
-                    <a class="nav-link text-uppercase text-dark" href="{{ url_for('user.user_logout') }}">Logout</a>
-                </li>
-                {% endif %}
-                {% else %}
-                <li class="nav-item px-2 py-2">
-                    <a class="nav-link text-uppercase text-dark" href="{{ url_for('index.index') }}">Home</a>
-                </li>
-                <li class="nav-item px-2 py-2">
-                    <a class="nav-link text-uppercase text-dark" href="{{ url_for('user.user_register') }}">Register</a>
-                </li>
-                <li class="nav-item px-2 py-2">
-                    <a class="nav-link text-uppercase text-dark" href="{{ url_for('user.user_login') }}">Login</a>
-                </li>
-                {% endif %}
-            </ul>
+          <ul class="navbar-nav mx-auto text-center">
+            {% if current_user.is_authenticated %} {% if current_user.role ==
+            'admin' %}
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('admin.admin_dashboard') }}"
+                >Dashboard</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('admin.admin_logout') }}"
+                >Logout</a
+              >
+            </li>
+            {% else %}
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('user.user_dashboard') }}"
+                >Dashboard</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('user.user_logout') }}"
+                >Logout</a
+              >
+            </li>
+            {% endif %} {% else %}
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('index.index') }}"
+                >Home</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('user.user_register') }}"
+                >Register</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('user.user_login') }}"
+                >Login</a
+              >
+            </li>
+            {% endif %}
+          </ul>
         </div>
-    </div>
-</nav>
-<!-- End of navbar -->
+      </div>
+    </nav>
+    
 
-<header>
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+
+      <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+        messages %} {% for category, message in messages %}
+        <div
+          class="alert alert-{{ category }} alert-dismissible fade show"
+          role="alert"
+        >
+          {{ message }}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+            aria-label="Close"
+          ></button>
         </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
-    </div>
-</header>
+        {% endfor %} {% endif %} {% endwith %} {% block content %}{% endblock %}
+      </div>
+    
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-   
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<hr>
+    <div class="container-x handshake">
+      
+      <div class="text-center text-lg-start text-white fatter">
+        
+        <section class="d-flex justify-content-between mt-auto p-4 social-media">
+          
+          <div class="left">
+            <span>Get connected with us on social networks:</span>
+          </div>
+          
 
-    // Automatically update counters every 1 second
-    //setInterval(updateCounters, 10000);
-</script>
-</body>
-<footer class="text-center">
-    <div class="container">
-        <p>&copy; 2025 SOUQ KHANA Website</p>
+          
+          <div class="right">
+            <a href="" class="text-white me-4">
+              <i class="fab fa-facebook-f"></i>
+            </a>
+            <a href="" class="text-white me-4">
+              <i class="fab fa-twitter"></i>
+            </a>
+            <a href="" class="text-white me-4">
+              <i class="fab fa-google"></i>
+            </a>
+            <a href="" class="text-white me-4">
+              <i class="fab fa-instagram"></i>
+            </a>
+            <a href="" class="text-white me-4">
+              <i class="fab fa-linkedin"></i>
+            </a>
+            <a href="" class="text-white me-4">
+              <i class="fab fa-github"></i>
+            </a>
+          </div>
+          
+        </section>
+        
+
+        
+        <section>
+          <div class="container text-center text-md-start mt-5">
+            
+            <div class="row mt-3">
+              
+              <div class="col-md-3 col-lg-4 col-xl-3 mx-auto mb-4">
+                
+                <h6 class="section-title" style="color: #e5345b">SOUQKHANA</h6>
+                <hr />
+                <p>
+                  Lorem ipsum, dolor sit amet consectetur adipisicing elit. Cum
+                  hic blanditiis dicta, consequatur sit esse necessitatibus non
+                  ad accusamus velit?
+                </p>
+              </div>
+              
+
+              
+              <div class="col-md-2 col-lg-2 col-xl-2 mx-auto mb-4">
+                
+                <h6 class="section-title">category</h6>
+                <hr />
+                <p>
+                  <a href="#!" class="text-white">Link</a>
+                </p>
+                <p>
+                  <a href="#!" class="text-white">Link</a>
+                </p>
+                <p>
+                  <a href="#!" class="text-white">Link</a>
+                </p>
+                <p>
+                  <a href="#!" class="text-white">Link Link</a>
+                </p>
+              </div>
+              
+
+              
+              <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+                
+                <h6 class="section-title">LINKS</h6>
+                <hr />
+                <p>
+                  <a href="#!" class="text-white">Link</a>
+                </p>
+                <p>
+                  <a href="#!" class="text-white">Link</a>
+                </p>
+                <p>
+                  <a href="#!" class="text-white">Link</a>
+                </p>
+                <p>
+                  <a href="#!" class="text-white">Link</a>
+                </p>
+              </div>
+              
+
+              
+              <div
+                class="col-md-4 col-lg-3 col-xl-3 mx-auto mb-md-0 mb-4 contaact"
+              >
+                
+                <h6 class="section-title">Contact</h6>
+                <hr />
+                <p><i class="fas fa-home mr-3"></i> Iraq, Kirkuk, Saiada</p>
+                <p>
+                  <a href="mailto:souqkhana@gmail.com"
+                    ><i class="fas fa-envelope mr-3"></i> souqkhana@gmail.com</a
+                  >
+                </p>
+                <p>
+                  <a href="tel:+9647800280007">
+                    <i class="fas fa-phone mr-3"></i> + 780-xxx-xxxx</a
+                  >
+                </p>
+                <p>
+                  <a href="tel:+9647800280007">
+                    <i class="fas fa-phone mr-3"></i> + 770-xxx-xxxx</a
+                  >
+                </p>
+              </div>
+              
+            </div>
+            
+          </div>
+        </section>
+        
+
+        
+        <div class="text-center p-3 copyright">
+          © 2025 Copyright:
+          <a class="text-white" href="#" style="color: #e5345b !important"
+            >SOUQKAHAN.COM</a
+          >
+        </div>
+        
+        
     </div>
-</footer>
+</div class="fatter">
+    
+  </body>
+ 
 </html>
