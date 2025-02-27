@@ -1,151 +1,189 @@
-{% extends 'layout.html' %}
-
-{% block title %}Home{% endblock %}
-
-{% block content %}
+{% extends 'layout.html' %} {% block title %}Home{% endblock %} {% block content
+%}
 <div class="text-center my-5">
-    <h1>Welcome to Souq Khana</h1>
-    <p>Discover the best products at unbeatable prices!</p>
+  <h1>Welcome to Souq Khana</h1>
+  <p>Discover the best products at unbeatable prices!</p>
 </div>
 
 <div class="row mb-4">
-    <div class="col-md-8">
-        <input type="text" id="search-bar" class="form-control" placeholder="Search for products...">
-    </div>
-    <div class="col-md-4">
-        <select id="filter-category" class="form-select">
-            <option value="">Filter by Category</option>
-            {% for category in categories %}
-                <option value="{{ category.category_id }}">{{ category.category_name }}</option>
-            {% endfor %}
-        </select>
-    </div>
+  <div class="col-md-8">
+    <input
+      type="text"
+      id="search-bar"
+      class="form-control"
+      placeholder="Search for products..."
+    />
+  </div>
+  <div class="col-md-4">
+    <select id="filter-category" class="form-select">
+      <option value="">Filter by Category</option>
+      {% for category in categories %}
+      <option value="{{ category.category_id }}">
+        {{ category.category_name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
 </div>
 
 <div class="wrapper">
-    {% for item in items %}
-    <div class="sing-card" data-category="{{ item.category_id }}">
-        <div class="img-area">
-            {% if item.images and item.images|length > 0 %}
-            <img src="/static/{{ item.images[0].image_url }}" alt="{{ item.item_name }}">
-            {% else %}
-            <img src="{{ url_for('static', filename='images/no_image.png') }}" class="card-img-top" alt="No Image">
-            {% endif %}
-            <div class="overlay">
-                <button  class="btn btn-primary add-to-cart" data-item-id="{{ item.item_id }}">🛒 Add to Cart</button>
-                <button  class="btn btn-secondary add-to-wishlist" data-item-id="{{ item.item_id }}">⭐ Add to Wishlist</button>
-                <a href="{{ url_for('item.item_detail', item_id=item.item_id) }}" class="btnn btn-primary mt-auto">View Details</a>
-            </div>
-        </div>
-        <div class="info">
-            <h3 class="card-title">{{ item.item_name }}</h3>
-            <p class="price">${{ item.item_price }}</p>
-            <p class="card-text">{{ item.item_description[:100] }}...</p>
-        </div>
+  {% for item in items %}
+  <div class="sing-card" data-category="{{ item.category_id }}">
+    <div class="img-area">
+      {% if item.images and item.images|length > 0 %}
+      <img
+        src="/static/{{ item.images[0].image_url }}"
+        alt="{{ item.item_name }}"
+      />
+      {% else %}
+      <img
+        src="{{ url_for('static', filename='images/no_image.png') }}"
+        class="card-img-top"
+        alt="No Image"
+      />
+      {% endif %}
+      <div class="overlay">
+        <button
+          class="btn btn-primary add-to-cart"
+          data-item-id="{{ item.item_id }}"
+        >
+          🛒 Add to Cart
+        </button>
+        <button
+          class="btn btn-secondary add-to-wishlist"
+          data-item-id="{{ item.item_id }}"
+        >
+          ⭐ Add to Wishlist
+        </button>
+        <a
+          href="{{ url_for('item.item_detail', item_id=item.item_id) }}"
+          class="btnn btn-primary mt-auto"
+          >View Details</a
+        >
+      </div>
     </div>
-    {% endfor %}
+    <div class="info">
+      <h3 class="card-title">{{ item.item_name }}</h3>
+      <p class="price">${{ item.item_price }}</p>
+      <p class="card-text">{{ item.item_description[:100] }}...</p>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const searchBar = document.getElementById('search-bar');
-        const filterCategory = document.getElementById('filter-category');
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchBar = document.getElementById("search-bar");
+    const filterCategory = document.getElementById("filter-category");
 
-        // Attach event listeners
-        searchBar.addEventListener('input', searchItems);
-        filterCategory.addEventListener('change', filterItems);
+    // Attach event listeners
+    searchBar.addEventListener("input", searchItems);
+    filterCategory.addEventListener("change", filterItems);
 
-        function filterItems() {
-            const categoryId = filterCategory.value;
+    function filterItems() {
+      const categoryId = filterCategory.value;
 
-            // Send AJAX request to filter items
-            fetch('/filter', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ category_id: categoryId }),
-            })
-                .then((response) => response.json())
-                .then((filteredItems) => {
-                    const wrapper = document.querySelector('.wrapper');
-                    wrapper.innerHTML = ''; // Clear current items
+      // Send AJAX request to filter items
+      fetch("/filter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ category_id: categoryId }),
+      })
+        .then((response) => response.json())
+        .then((filteredItems) => {
+          const wrapper = document.querySelector(".wrapper");
+          wrapper.innerHTML = ""; // Clear current items
 
-                    // Dynamically render filtered items
-                    filteredItems.forEach((item) => {
-                        const card = document.createElement('div');
-                        card.classList.add('sing-card');
-                        card.setAttribute('data-category', item.category_id);
-                        card.innerHTML = `
+          // Dynamically render filtered items
+          filteredItems.forEach((item) => {
+            const card = document.createElement("div");
+            card.classList.add("sing-card");
+            card.setAttribute("data-category", item.category_id);
+            card.innerHTML = `
                             <div class="img-area">
                                 <img src="${
-                                    item.image_url
-                                        ? `/static/${item.image_url}` // Ensure the correct path for images
-                                        : '/static/images/no_image.png'
+                                  item.image_url
+                                    ? `/static/${item.image_url}` // Ensure the correct path for images
+                                    : "/static/images/no_image.png"
                                 }" alt="${item.name}">
                                 <div class="overlay">
-                                    <button class="btn btn-primary add-to-cart" data-item-id="${item.id}">🛒 Add to Cart</button>
-                                    <button class="btn btn-secondary add-to-wishlist" data-item-id="${item.id}">⭐ Add to Wishlist</button>
-                                    <a href="/item/${item.id}" class="btnn btn-primary mt-auto">View Details</a>
+                                    <button class="btn btn-primary add-to-cart" data-item-id="${
+                                      item.id
+                                    }">🛒 Add to Cart</button>
+                                    <button class="btn btn-secondary add-to-wishlist" data-item-id="${
+                                      item.id
+                                    }">⭐ Add to Wishlist</button>
+                                    <a href="/item/${
+                                      item.id
+                                    }" class="btnn btn-primary mt-auto">View Details</a>
                                 </div>
                             </div>
                             <div class="info">
                                 <h3 class="card-title">${item.name}</h3>
                                 <p class="price">$${item.price}</p>
-                                <p class="card-text">${item.description.substring(0, 100)}...</p>
+                                <p class="card-text">${item.description.substring(
+                                  0,
+                                  100
+                                )}...</p>
                             </div>`;
-                        wrapper.appendChild(card);
-                    });
+            wrapper.appendChild(card);
+          });
 
-                    // Reapply search functionality to dynamically updated items
-                    searchItems();
-                });
-        }
-
-        function searchItems() {
-            const query = searchBar.value.toLowerCase();
-
-            // Select all cards and filter based on the query
-            document.querySelectorAll('.sing-card').forEach((card) => {
-                const title = card.querySelector('.card-title').textContent.toLowerCase();
-                const matchesQuery = query === '' || title.includes(query);
-
-                // Show or hide cards based on the search query
-                card.style.display = matchesQuery ? '' : 'none';
-            });
-        }
-
-        document.querySelectorAll('.add-to-cart').forEach((button) => {
-            button.addEventListener('click', function () {
-                const itemId = this.dataset.itemId;
-                fetch(`/cart/add/${itemId}`, { method: 'POST' })
-                    .then(() => updateCounters())
-                    .catch(() => alert('Error adding to cart'));
-            });
+          // Reapply search functionality to dynamically updated items
+          searchItems();
         });
+    }
 
-        document.querySelectorAll('.add-to-wishlist').forEach((button) => {
-            button.addEventListener('click', function () {
-                const itemId = this.dataset.itemId;
-                fetch(`/wishlist/add/${itemId}`, { method: 'POST' })
-                    .then(() => updateCounters())
-                    
-                    .catch(() => alert('Error adding to wishlist'));
-            });
-        });
+    function searchItems() {
+      const query = searchBar.value.toLowerCase();
+
+      // Select all cards and filter based on the query
+      document.querySelectorAll(".sing-card").forEach((card) => {
+        const title = card
+          .querySelector(".card-title")
+          .textContent.toLowerCase();
+        const matchesQuery = query === "" || title.includes(query);
+
+        // Show or hide cards based on the search query
+        card.style.display = matchesQuery ? "" : "none";
+      });
+    }
+
+    document.querySelectorAll(".add-to-cart").forEach((button) => {
+      button.addEventListener("click", function () {
+        const itemId = this.dataset.itemId;
+        fetch(`/cart/add/${itemId}`, { method: "POST" })
+          .then(() => updateCounters())
+          .catch(() => alert("Error adding to cart"));
+      });
     });
 
-     // Fetch and update counters dynamically
-     function updateCounters() {
-        fetch('/api/counters')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('cart-badge').textContent = data.cart_count;
-                document.getElementById('wishlist-badge').textContent = data.wishlist_count;
-                document.getElementById('orders-badge').textContent = data.orders_count;
-                document.getElementById('messages-badge').textContent = data.unread_messages_count;
-            })
-            .catch(error => console.error('Error updating counters:', error));
-    }
+    document.querySelectorAll(".add-to-wishlist").forEach((button) => {
+      button.addEventListener("click", function () {
+        const itemId = this.dataset.itemId;
+        fetch(`/wishlist/add/${itemId}`, { method: "POST" })
+          .then(() => updateCounters())
+
+          .catch(() => alert("Error adding to wishlist"));
+      });
+    });
+  });
+
+  // Fetch and update counters dynamically
+  function updateCounters() {
+    fetch("/api/counters")
+      .then((response) => response.json())
+      .then((data) => {
+        document.getElementById("cart-badge").textContent = data.cart_count;
+        document.getElementById("wishlist-badge").textContent =
+          data.wishlist_count;
+        document.getElementById("orders-badge").textContent = data.orders_count;
+        document.getElementById("messages-badge").textContent =
+          data.unread_messages_count;
+      })
+      .catch((error) => console.error("Error updating counters:", error));
+  }
 </script>
 {% endblock %}

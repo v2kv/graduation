@@ -89,7 +89,9 @@ def index():
         cart_count=cart_count,
         wishlist_count=wishlist_count,
         orders_count=orders_count,
-        unread_messages_count=unread_messages_count
+        unread_messages_count=unread_messages_count,
+        show_footer=True
+        
     )
 
 
@@ -673,7 +675,7 @@ def user_login():
         flash('Invalid username or password', 'danger')
 
     # Render the login template for GET requests
-    return render_template('user/user_login.html')
+    return render_template('user/user_login.html', show_footer=True)
 
 @user_bp.route('/login/google')
 def login_with_google():
