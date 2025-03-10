@@ -101,6 +101,7 @@ def inject_counts():
     if current_user.is_authenticated and current_user.role != "admin":
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
         wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+        
         unread_messages_count = Messages.query.filter_by(user_id=current_user.user_id, is_read=False).count()
         orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
             ~Order.order_status.in_(['delivered', 'cancelled'])
@@ -112,11 +113,22 @@ def inject_counts():
             'orders_count': orders_count,
             'unread_messages_count': unread_messages_count
         }
+
+    cate=Category.query.count();
+    NoOfUsers=User.query.count();
+    NoOfItems=Item.query.count();
+    NoOfTag=Tag.query.count();
+    NoOfOrder=Order.query.count();
     return {
         'cart_count': 0,
         'wishlist_count': 0,
         'orders_count': 0,
-        'unread_messages_count': 0
+        'unread_messages_count': 0,
+        'NoOfUsers': NoOfUsers,
+        'NoOfItems': NoOfItems,
+        'NoOfTag': NoOfTag,
+        'NoOfOrder': NoOfOrder,
+        'cate':cate
     }
 
 
@@ -127,6 +139,7 @@ def get_counters():
     if current_user.is_authenticated and current_user.role != "admin":
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
         wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+        no_of_users=session.query(User.user_id).count();
         unread_messages_count = Messages.query.filter_by(user_id=current_user.user_id, is_read=False).count()
         orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
             ~Order.order_status.in_(['delivered', 'cancelled'])
@@ -258,6 +271,7 @@ def admin_logout():
 @login_required
 @admin_required
 def admin_dashboard():
+
     return render_template('admin/admin_dashboard.html')
 
 # admin functionalities
