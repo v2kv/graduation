@@ -42,7 +42,7 @@ google_bp = make_google_blueprint(
     scope=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"],
     offline=True,
     redirect_url=app.config['GOOGLE_REDIRECT_URI'],
-    redirect_to="user.user_register"
+    redirect_to="user.google_callback"
 )
 app.register_blueprint(google_bp, url_prefix="/login")
 
@@ -72,4 +72,4 @@ def internal_server_error(error):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Create tables in MySQL
-    app.run(debug=True, port=5501, ssl_context=('cert.pem', 'key.pem'))
+    app.run(debug=True, port=5500, ssl_context=('cert.pem', 'key.pem'))
