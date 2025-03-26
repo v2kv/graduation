@@ -5,7 +5,7 @@
 />
 {% endblock %} {% block title %}User Login{% endblock %} {% block content %}
 
-<div class="login-container m-auto">
+<div class="login-container m-auto mt-4">
   <div class="login-box">
     <div class="signin-section">
       <form action="{{ url_for('user.user_login') }}" method="POST" target="">
@@ -31,8 +31,11 @@
           <a href="#">Forgot Password</a>
         </div>
         <button type="submit" value="Login">Sign In</button>
+        <a href="{{ url_for('user.user_register') }}" class="mobile-btn"
+          >Sign Up</a
+        >
         <div class="text-center">
-          <p class="mb-2">Or login with:</p>
+          <p class="mb-2">Or login with</p>
           <a href="{{ url_for('google.login') }}" class="btn btn-outline-dark">
             <img
               src="https://img.icons8.com/color/16/000000/google-logo.png"

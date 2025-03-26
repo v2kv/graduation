@@ -1,5 +1,9 @@
-{% extends 'layout.html' %} {% block title %}Home{% endblock %} {% block content
-%}
+{% extends 'layout.html' %} {% block title %}Home{% endblock %} {% block link %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='index_style.css') }}"
+/>
+{% endblock %} {% block content %}
 <div class="text-center my-5">
   <h1>Welcome to Souq Khana</h1>
   <p>Discover the best products at unbeatable prices!</p>

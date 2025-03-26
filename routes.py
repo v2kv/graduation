@@ -616,32 +616,38 @@ def delete_user(user_id):
 
 # User Routes
 @user_bp.route('/user/register', methods=['GET', 'POST'])
+@login_required
 def user_register():
-    if request.method == 'POST':
-        username = request.form['username']
-        first_name = request.form['first_name']
-        last_name = request.form['last_name']
-        email = request.form['email']
-        password = request.form['password']
-        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+    if current_user.is_authenticated or current_user.role != 'user':
 
-        if User.query.filter((User.username == username) | (User.user_email == email)).first():
-            flash('Username or email already exists!', 'danger')
-            return redirect(url_for('user.user_register'))
+        if request.method == 'POST':
+            username = request.form['username']
+            first_name = request.form['first_name']
+            last_name = request.form['last_name']
+            email = request.form['email']
+            password = request.form['password']
+            password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
-        new_user = User(username=username, first_name=first_name, last_name=last_name, user_email=email, password_hash=password_hash)
-        db.session.add(new_user)
-        db.session.commit()
+            if User.query.filter((User.username == username) | (User.user_email == email)).first():
+                flash('Username or email already exists!', 'danger')
+                return redirect(url_for('user.user_register'))
 
-        # Generate email confirmation token
-        s = Serializer(current_app.config['SECRET_KEY'])
-        token = s.dumps({'user_id': new_user.user_id})
+            new_user = User(username=username, first_name=first_name, last_name=last_name, user_email=email, password_hash=password_hash)
+            db.session.add(new_user)
+            db.session.commit()
 
-        # Send confirmation email
-        send_confirmation_email(email, token, 'user')
+            # Generate email confirmation token
+            s = Serializer(current_app.config['SECRET_KEY'])
+            token = s.dumps({'user_id': new_user.user_id})
 
-        flash('User registered successfully! Please check your email to confirm your account.', 'success')
-        return redirect(url_for('user.user_login'))
+            # Send confirmation email
+            send_confirmation_email(email, token, 'user')
+
+            flash('User registered successfully! Please check your email to confirm your account.', 'success')
+            return redirect(url_for('user.user_login'))
+        else:
+            return redirect(url_for("index.index"))
+
 
     # Render the registration template for GET requests
     return render_template('user/user_register.html')
@@ -671,25 +677,29 @@ def confirm_email(token):
 
 @user_bp.route('/user/login', methods=['GET', 'POST'])
 def user_login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+    if not current_user.is_authenticated:
 
-        user = User.query.filter_by(username=username).first()
-        if user and user.verify_password(password):
-            if not user.email_verified:
-                flash('Please confirm your email before logging in.', 'warning')
-                return redirect(url_for('user.user_login'))
-            login_user(user)
-            # Set user type to user in the session
-            session['user_type'] = 'user'
-            flash('Login successful!', 'success')
-            return redirect(url_for('index.index'))
+        if request.method == 'POST':
+            username = request.form['username']
+            password = request.form['password']
 
-        flash('Invalid username or password', 'danger')
+            user = User.query.filter_by(username=username).first()
+            if user and user.verify_password(password):
+                if not user.email_verified:
+                    flash('Please confirm your email before logging in.', 'warning')
+                    return redirect(url_for('user.user_login'))
+                login_user(user)
+                # Set user type to user in the session
+                session['user_type'] = 'user'
+                flash('Login successful!', 'success')
+                return redirect(url_for('index.index'))
 
-    # Render the login template for GET requests
-    return render_template('user/user_login.html', show_footer=True)
+            flash('Invalid username or password', 'danger')
+
+        # Render the login template for GET requests
+        return render_template('user/user_login.html', show_footer=True)
+    else:
+        return redirect(url_for('index.index'))
 
 @user_bp.route('/login/google')
 def login_with_google():
@@ -772,7 +782,7 @@ def user_logout():
 @login_required
 def user_dashboard():
     addresses = Address.query.filter_by(user_id=current_user.user_id).all()
-    return render_template('user/user_dashboard.html', user=current_user, addresses=addresses)
+    return render_template('user/user_dashboard.html', user=current_user, addresses=addresses, show_footer=True)
 
 # Profile Management
 @user_bp.route('/user/profile', methods=['GET', 'POST'])
@@ -784,7 +794,7 @@ def user_profile():
         db.session.commit()
         flash('Profile updated successfully!', 'success')
         return redirect(url_for('user.user_profile'))
-    return render_template('user/user_profile.html', user=current_user)
+    return render_template('user/user_profile.html', user=current_user, show_footer=True)
 
 # Change Password
 @user_bp.route('/user/change-password', methods=['GET', 'POST'])
@@ -1151,7 +1161,7 @@ def item_detail(item_id):
 @login_required
 def view_cart():
     cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
-    return render_template('cart.html', cart=cart)
+    return render_template('cart.html', cart=cart ,show_footer=True)
 
 
 @cart_bp.route('/cart/add/<int:item_id>', methods=['POST'])
@@ -1252,7 +1262,7 @@ def move_to_wishlist(cart_item_id):
 @login_required
 def view_wishlist():
     wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
-    return render_template('wishlist.html', wishlist=wishlist)
+    return render_template('wishlist.html', wishlist=wishlist ,show_footer=True)
 
 
 @wishlist_bp.route('/wishlist/add/<int:item_id>', methods=['POST'])

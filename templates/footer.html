@@ -32,34 +32,66 @@
         <div class="container text-center text-md-start mt-5">
           <div class="row mt-3">
             <div class="col-md-3 col-lg-4 col-xl-3 mx-auto mb-4">
-              <h6 class="section-title" style="color: #e5345b">SOUQKHANA</h6>
+              <h6 class="section-title slogan">SOUQKHANA</h6>
               <hr />
-              <p>
-                Lorem ipsum, dolor sit amet consectetur adipisicing elit. Cum
-                hic blanditiis dicta, consequatur sit esse necessitatibus non ad
-                accusamus velit?
+              <p class="desc">
+                SouqKahan is an Iraqi e-commerce website that offers a wide
+                range of products, including electronics, clothing, beauty
+                products, home goods, and more. The platform aims to provide a
+                convenient online shopping experience for customers in Iraq,
+                allowing them to browse and purchase items with ease.
               </p>
             </div>
+            {% if current_user.is_authenticated %} {% if current_user.role !=
+            'admin' %}
 
             <div class="col-md-2 col-lg-2 col-xl-2 mx-auto mb-4">
-              <h6 class="section-title">category</h6>
+              <h6 class="section-title">My account</h6>
               <hr />
               <p>
-                <a href="#!" class="text-white">Link</a>
+                <a
+                  href="{{ url_for('user.user_dashboard') }}"
+                  class="text-white"
+                  >My account</a
+                >
               </p>
               <p>
-                <a href="#!" class="text-white">Link</a>
+                <a href="{{ url_for('cart.view_cart') }}" class="text-white"
+                  >View cart</a
+                >
               </p>
               <p>
-                <a href="#!" class="text-white">Link</a>
-              </p>
-              <p>
-                <a href="#!" class="text-white">Link Link</a>
+                <a
+                  href="{{ url_for('wishlist.view_wishlist') }}"
+                  class="text-white"
+                  >wishlist</a
+                >
               </p>
             </div>
 
-            <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
-              <h6 class="section-title">LINKS</h6>
+            {% endif %} {% else %}
+            <div class="col-md-2 col-lg-2 col-xl-2 mx-auto mb-4">
+              <h6 class="section-title">My account</h6>
+              <hr />
+              <p>
+                <a href="{{ url_for('user.user_login') }}" class="text-white"
+                  >My account</a
+                >
+              </p>
+              <p>
+                <a href="{{ url_for('user.user_login') }}" class="text-white"
+                  >View cart</a
+                >
+              </p>
+              <p>
+                <a href="{{ url_for('user.user_login') }}" class="text-white"
+                  >wishlist</a
+                >
+              </p>
+            </div>
+            {% endif %}
+            <!-- <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+              <h6 class="section-title">Opening Time</h6>
               <hr />
               <p>
                 <a href="#!" class="text-white">Link</a>
@@ -73,7 +105,7 @@
               <p>
                 <a href="#!" class="text-white">Link</a>
               </p>
-            </div>
+            </div> -->
 
             <div
               class="col-md-4 col-lg-3 col-xl-3 mx-auto mb-md-0 mb-4 contaact"
