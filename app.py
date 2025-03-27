@@ -5,8 +5,6 @@ from db import db, mail
 from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp, wishlist_bp
 from flask_login import LoginManager
 from dotenv import load_dotenv
-from flask_dance.contrib.google import make_google_blueprint, google
-import logging
 load_dotenv()  # Load environment variables from .env
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -35,16 +33,6 @@ def load_user(user_id):
     elif user_type == 'user':
         return User.query.get(int(user_id))
     return None  # If no user is found
-
-google_bp = make_google_blueprint(
-    client_id=app.config['GOOGLE_CLIENT_ID'],
-    client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-    scope=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"],
-    offline=True,
-    redirect_url=app.config['GOOGLE_REDIRECT_URI'],
-    redirect_to="user.user_register"
-)
-app.register_blueprint(google_bp, url_prefix="/login")
 
 # Register Blueprints
 app.register_blueprint(index_bp)

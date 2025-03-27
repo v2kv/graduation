@@ -38,11 +38,15 @@ def admin_required(func):
     return decorated_view
 
 def send_confirmation_email(email, token, user_type):
-    msg = Message('Confirm Your Email', recipients=[email])
+    msg = Message('Confirm Your Email',
+                  sender=current_app.config['MAIL_DEFAULT_SENDER'],
+                  recipients=[email])
+    
     if user_type == 'admin':
         confirmation_url = url_for('admin.confirm_email', token=token, _external=True)
     else:
         confirmation_url = url_for('user.confirm_email', token=token, _external=True)
+        
     msg.html = render_template('confirmation.html', confirmation_url=confirmation_url)
     mail.send(msg)
 
@@ -616,38 +620,48 @@ def delete_user(user_id):
 
 # User Routes
 @user_bp.route('/user/register', methods=['GET', 'POST'])
-@login_required
 def user_register():
-    if current_user.is_authenticated or current_user.role != 'user':
+    # Check if user is already authenticated and is not a regular user
+    if current_user.is_authenticated:
+        if current_user.role != 'user':
+            return redirect(url_for("index.index"))
+        flash('You are already logged in!', 'warning')
+        return redirect(url_for('index.index'))
 
-        if request.method == 'POST':
-            username = request.form['username']
-            first_name = request.form['first_name']
-            last_name = request.form['last_name']
-            email = request.form['email']
-            password = request.form['password']
-            password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+    if request.method == 'POST':
+        username = request.form['username']
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+        email = request.form['email']
+        password = request.form['password']
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
-            if User.query.filter((User.username == username) | (User.user_email == email)).first():
-                flash('Username or email already exists!', 'danger')
-                return redirect(url_for('user.user_register'))
+        if User.query.filter((User.username == username) | (User.user_email == email)).first():
+            flash('Username or email already exists!', 'danger')
+            return redirect(url_for('user.user_register'))
 
-            new_user = User(username=username, first_name=first_name, last_name=last_name, user_email=email, password_hash=password_hash)
-            db.session.add(new_user)
-            db.session.commit()
+        new_user = User(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            user_email=email,
+            password_hash=password_hash
+        )
+        db.session.add(new_user)
+        db.session.commit()
 
-            # Generate email confirmation token
-            s = Serializer(current_app.config['SECRET_KEY'])
-            token = s.dumps({'user_id': new_user.user_id})
+        # Generate email confirmation token
+        s = Serializer(current_app.config['SECRET_KEY'])
+        token = s.dumps({'user_id': new_user.user_id})
 
-            # Send confirmation email
-            send_confirmation_email(email, token, 'user')
+        # Send confirmation email
+        send_confirmation_email(email, token, 'user')
 
         flash('User registered successfully! Please check your email to confirm your account.', 'success')
         return redirect(url_for('user.user_login'))
 
     # Render the registration template for GET requests
-    return render_template('user/user_register.html')
+    return render_template('user/user_register.html', show_footer=True)
 
 @user_bp.route('/user/confirm/<token>')
 def confirm_email(token):
@@ -674,98 +688,34 @@ def confirm_email(token):
 
 @user_bp.route('/user/login', methods=['GET', 'POST'])
 def user_login():
-    if not current_user.is_authenticated:
+    if current_user.is_authenticated:
+        flash('You are already logged in!', 'info')
+        return redirect(url_for('index.index'))
 
-        if request.method == 'POST':
-            username = request.form['username']
-            password = request.form['password']
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
 
         user = User.query.filter_by(username=username).first()
         if user and user.verify_password(password):
             if not user.email_verified:
                 flash('Please confirm your email before logging in.', 'warning')
                 return redirect(url_for('user.user_login'))
+            
             login_user(user)
-            # Set user type to user in the session
             session['user_type'] = 'user'
             flash('Login successful!', 'success')
             return redirect(url_for('index.index'))
-
+        
         flash('Invalid username or password', 'danger')
-
-    # Render the login template for GET requests
-    return render_template('user/user_login.html')
-
-@user_bp.route('/login/google')
-def login_with_google():
-    # Trigger Google OAuth login
-    return redirect(url_for("google.login"))
-
-
-@user_bp.route('/user/google/callback')
-def google_callback():
-    if not google.authorized:
-        flash("Google authorization failed. Please try again.", "danger")
         return redirect(url_for('user.user_login'))
 
-    try:
-        resp = google.get("/oauth2/v1/userinfo")
-        if not resp.ok:
-            raise Exception("Failed to fetch user info from Google.")
-
-        google_info = resp.json()
-        google_id = google_info["id"]
-        email = google_info["email"]
-        first_name = google_info.get("given_name", "")
-        last_name = google_info.get("family_name", "")
-
-        user = User.query.filter_by(google_id=google_id).first()
-        if user:
-            login_user(user)
-            session['user_type'] = 'user'
-            flash('Login successful!', 'success')
-            return redirect(url_for('index.index'))
-        else:
-            # Generate a unique username
-            username = email.split('@')[0]
-            counter = 1
-            while User.query.filter_by(username=username).first():
-                username = f"{email.split('@')[0]}{counter}"
-                counter += 1
-
-            new_user = User(
-                username=username,
-                first_name=first_name,
-                last_name=last_name,
-                user_email=email,
-                email_verified=True,
-                google_id=google_id
-            )
-            db.session.add(new_user)
-            db.session.commit()
-
-            login_user(new_user)
-            session['user_type'] = 'user'
-            flash('Registration successful!', 'success')
-            return redirect(url_for('index.index'))
-    except Exception as e:
-        flash(f"An error occurred: {str(e)}", "danger")
-        return redirect(url_for("user.user_login"))
+    return render_template('user/user_login.html', show_footer=True)
 
 
 @user_bp.route('/user/logout')
 @login_required
 def user_logout():
-    if google.authorized:
-        token = google.token["access_token"]
-        resp = google.post(
-            "https://accounts.google.com/o/oauth2/revoke",
-            params={"token": token},
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
-        )
-        if resp.status_code == 200:
-            del google.token
-
     logout_user()
     flash('You have been logged out.', 'success')
     return redirect(url_for('index.index'))

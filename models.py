@@ -33,7 +33,6 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
     stripe_customer_id = db.Column(db.String(255), nullable=True)
-    google_id = db.Column(db.String(255), unique=True, nullable=True)
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
