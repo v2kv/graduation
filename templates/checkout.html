@@ -68,11 +68,19 @@
         Use a new payment method
       </label>
     </div>
-  {% else %}
+{% else %}
     <p>No saved payment methods. You'll need to enter a new payment method.</p>
-  {% endif %}
-
+{% endif %}
+<div class="form-check">
+  <input class="form-check-input" type="radio" 
+         name="payment_method_id" 
+         id="cash_on_delivery" 
+         value="cash_on_delivery">
+  <label class="form-check-label" for="cash_on_delivery">
+    Pay When Delivered (Cash on Delivery)
+  </label>
+</div>
 <!-- Submit Button -->
-<button type="submit" class="btn btn-success w-100 mt-4">Pay with Stripe</button>
+<button type="submit" class="btn btn-success w-100 mt-4">Checkout</button>
 </form>
 {% endblock %}

@@ -523,10 +523,14 @@ def update_order_status(order_id):
         return redirect(url_for('admin.manage_orders'))
     
     order.order_status = new_status
+    
+    if new_status == 'delivered' and order.payment_method == 'cash_on_delivery':
+        order.payment_received = True
+
     message = Messages(
         user_id=order.user_id,
         order_id=order.order_id,
-        content=f"Order status updated to {new_status.replace('_', ' ').title()}"
+        content=f"Order status updated to {new_status}"
     )
     db.session.add(message)
     db.session.commit()
@@ -1311,6 +1315,9 @@ def checkout():
         if not address_id or not payment_method_id:
             flash('Please select both an address and a payment method.', 'danger')
             return redirect(url_for('order.checkout'))
+        # Handle Cash on Delivery
+        if payment_method_id == 'cash_on_delivery':
+            return process_cash_on_delivery(address_id)
 
         # Store the selected address and payment method in the session
         session['address_id'] = address_id
@@ -1319,6 +1326,42 @@ def checkout():
         return render_template('redirect_to_stripe.html')
 
     return render_template('checkout.html', cart=cart, addresses=addresses, payment_methods=payment_methods)
+
+def process_cash_on_delivery(address_id):
+    address = Address.query.get(address_id)
+    if not address or address.user_id != current_user.user_id:
+        flash('Invalid shipping address', 'danger')
+        return redirect(url_for('order.checkout'))
+
+    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+    if not cart or not cart.items:
+        flash('Your cart is empty', 'danger')
+        return redirect(url_for('cart.view_cart'))
+
+    total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
+
+    new_order = Order(
+        user_id=current_user.user_id,
+        shipping_address_id=address_id,
+        total_amount=total_amount,
+        order_status='pending',
+        payment_method='cash_on_delivery',
+        payment_received=False
+    )
+    db.session.add(new_order)
+
+    message = Messages(
+        user_id=current_user.user_id,
+        order_id=new_order.order_id,
+        content=f"Order placed with Cash on Delivery. Total: ${total_amount}"
+    )
+    db.session.add(message)
+
+    CartItem.query.filter_by(cart_id=cart.cart_id).delete()
+    db.session.commit()
+
+    flash('Order placed! Pay upon delivery.', 'success')
+    return redirect(url_for('order.view_orders'))
 
 
 @order_bp.route('/stripe_checkout_session', methods=['POST'])

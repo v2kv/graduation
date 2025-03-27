@@ -178,6 +178,7 @@ class WishlistItem(db.Model):
     variation_id = db.Column(db.Integer, db.ForeignKey('item_variations.variation_id'))
     variation = db.relationship('ItemVariation')
 
+# models.py (updated Order class)
 class Order(db.Model):
     __tablename__ = 'orders'
     order_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -188,7 +189,9 @@ class Order(db.Model):
     shipping_address_id = db.Column(db.Integer, db.ForeignKey('addresses.address_id'), nullable=False)
     shipping_address = db.relationship('Address')
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
-    stripe_payment_intent = db.Column(db.String(255)) 
+    stripe_payment_intent = db.Column(db.String(255))
+    payment_method = db.Column(db.String(50), nullable=False, default='stripe')  
+    payment_received = db.Column(db.Boolean, nullable=False, default=False) 
     refund_requested = db.Column(db.Boolean, default=False)
     refund_status = db.Column(db.String(50), nullable=True)
     refund_denial_reason = db.Column(db.Text, nullable=True)
