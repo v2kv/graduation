@@ -5,61 +5,69 @@
     <h2 class="mb-4">My Orders</h2>
 
     {% if orders %}
-    <div class="row">
+    <div class="row row-cols-1 row-cols-md-2 g-4">
         {% for order in orders %}
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-body">
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body d-flex flex-column">
                     <h5 class="card-title">Order #{{ order.order_id }}</h5>
-                    <p class="card-text">
-                        <strong>Status:</strong> {{ order.order_status|title }}<br>
-                        <strong>Date:</strong> {{ order.order_date.strftime('%Y-%m-%d %H:%M') }}<br>
-                        <strong>Total:</strong> ${{ order.total_amount }}
-                    </p>
-                    
-                    <div class="btn-group">
-                        <a href="{{ url_for('order.order_detail', order_id=order.order_id) }}" 
-                           class="btn btn-primary">Details</a>
-
-                           {% if order.order_status == 'sent' %}
-                           {% if not order.refund_requested %}
-                           <form action="{{ url_for('order.request_refund', order_id=order.order_id) }}" 
-                                 method="POST" class="d-inline">
-                               <button type="submit" class="btn btn-warning">Request Refund</button>
-                           </form>
-                           {% endif %}
-                       {% elif order.order_status == 'payment successful, delivery pending' %}
-                           <form action="{{ url_for('order.cancel_order', order_id=order.order_id) }}" 
-                                 method="POST" class="d-inline">
-                               <button type="submit" class="btn btn-danger" 
-                                       onclick="return confirm('Are you sure you want to cancel this order?')">
-                                   Cancel Order
-                               </button>
-                           </form>
-                       {% endif %}
-
-                        {% if order.order_status == 'sent' and order.refund_requested %}
-                        <button type="button" class="btn btn-secondary ms-2" disabled>
-                            Refund Pending
-                        </button>
-                        {% endif %}
-
-                        {% if order.order_status == 'payment_successful, delivery pending' %}
-                        <form action="{{ url_for('order.cancel_order', order_id=order.order_id) }}" 
-                              method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-danger ms-2" 
-                                    onclick="return confirm('Are you sure you want to cancel this order?')">
-                                Cancel Order
-                            </button>
-                        </form>
-                        {% endif %}
+                    <div class="card-text mb-3">
+                        <p class="mb-1">
+                            <strong>Status:</strong> {{ order.order_status|title }}<br>
+                            <strong>Date:</strong> {{ order.order_date.strftime('%Y-%m-%d %H:%M') }}<br>
+                            <strong>Total:</strong> ${{ order.total_amount }}<br>
+                            <strong>Payment Method:</strong> {{ order.payment_method|replace('_', ' ')|title }}
+                        </p>
                     </div>
 
-                    {% if order.refund_status == 'denied' %}
-                    <div class="alert alert-danger mt-3">
-                        <strong>Refund Denied:</strong> {{ order.refund_denial_reason }}
+                    <div class="mt-auto">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('order.order_detail', order_id=order.order_id) }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                View Details
+                            </a>
+
+                            {% if order.order_status == 'sent' and order.payment_method != 'cash_on_delivery' %}
+                                {% if not order.refund_requested %}
+                                <form action="{{ url_for('order.request_refund', order_id=order.order_id) }}" 
+                                      method="POST">
+                                    <textarea name="refund_reason" 
+                                              class="form-control form-control-sm mb-2" 
+                                              placeholder="Reason for refund"
+                                              rows="2"
+                                              required></textarea>
+                                    <button type="submit" class="btn btn-warning btn-sm w-100">
+                                        Request Refund
+                                    </button>
+                                </form>
+                                {% elif order.refund_status == 'pending' %}
+                                <button type="button" class="btn btn-secondary btn-sm w-100" disabled>
+                                    Refund Pending
+                                </button>
+                                {% endif %}
+                            {% endif %}
+
+                            {% if (order.order_status == 'payment_successful, delivery pending') or (order.payment_method == 'cash_on_delivery' and order.order_status == 'pending') %}
+                                <form action="{{ url_for('order.cancel_order', order_id=order.order_id) }}" 
+                                    method="POST">
+                                    <button type="submit" class="btn btn-danger btn-sm w-100" 
+                                            onclick="return confirm('Are you sure you want to cancel this order?')">
+                                        Cancel Order
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+
+                        {% if order.refund_status == 'denied' %}
+                        <div class="alert alert-danger mt-3 mb-0">
+                            <strong>Refund Denied:</strong> {{ order.refund_denial_reason }}
+                        </div>
+                        {% elif order.refund_status == 'approved' %}
+                        <div class="alert alert-success mt-3 mb-0">
+                            <strong>Refund Approved:</strong> Your refund has been processed
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>

@@ -543,8 +543,8 @@ def update_order_status(order_id):
 def process_refund(order_id):
     order = Order.query.get_or_404(order_id)
     action = request.form.get('action')
-    denial_reason = request.form.get('denial_reason')
-    
+    denial_reason = request.form.get('denial_reason', '').strip()
+
     if action == 'approve':
         try:
             stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
@@ -555,27 +555,26 @@ def process_refund(order_id):
             
             order.order_status = 'refunded'
             order.refund_status = 'approved'
-            message = Messages(
-                user_id=order.user_id,
-                order_id=order.order_id,
-                content=f"Your refund request for Order #{order.order_id} has been approved and processed."
-            )
+            order.refund_processed_by = current_user.admin_id
+            message_content = f"Refund approved for Order #{order.order_id}"
         except StripeError as e:
             flash(f'Refund failed: {e.user_message}', 'danger')
             return redirect(url_for('admin.manage_orders'))
     elif action == 'deny':
         if not denial_reason:
-            flash('Please provide a reason for denying the refund.', 'danger')
+            flash('Please provide a denial reason.', 'danger')
             return redirect(url_for('admin.manage_orders'))
         
         order.refund_status = 'denied'
         order.refund_denial_reason = denial_reason
-        message = Messages(
-            user_id=order.user_id,
-            order_id=order.order_id,
-            content=f"Your refund request for Order #{order.order_id} has been denied. Reason: {denial_reason}"
-        )
+        order.refund_processed_by = current_user.admin_id
+        message_content = f"Refund denied for Order #{order.order_id}. Reason: {denial_reason}"
     
+    message = Messages(
+        user_id=order.user_id,
+        order_id=order.order_id,
+        content=message_content
+    )
     db.session.add(message)
     db.session.commit()
     flash('Refund request processed.', 'success')
@@ -1554,29 +1553,47 @@ def cancel_order(order_id):
         flash('Unauthorized action.', 'danger')
         return redirect(url_for('order.view_orders'))
     
-    if order.order_status not in ['payment_successful, delivery pending', 'pending']:
+    # Allow cancellation for both payment types in appropriate statuses
+    valid_statuses = ['payment_successful, delivery pending', 'pending']
+    if order.order_status not in valid_statuses:
         flash('This order cannot be canceled.', 'danger')
         return redirect(url_for('order.view_orders'))
     
     try:
-        # Create refund in Stripe
-        stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-        refund = stripe.Refund.create(
-            payment_intent=order.stripe_payment_intent,
-            reason='requested_by_customer'
-        )
+        # Only process Stripe refund for non-cash payments
+        if order.payment_method != 'cash_on_delivery':
+            stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+            refund = stripe.Refund.create(
+                payment_intent=order.stripe_payment_intent,
+                reason='requested_by_customer'
+            )
         
+        # Update order status
         order.order_status = 'cancelled'
+        
+        # Create appropriate message
+        if order.payment_method == 'cash_on_delivery':
+            message_content = f"Order #{order.order_id} has been cancelled."
+        else:
+            message_content = f"Order #{order.order_id} has been cancelled and refund processed."
+            
         message = Messages(
             user_id=current_user.user_id,
             order_id=order.order_id,
-            content=f"Order #{order.order_id} has been cancelled and refund processed."
+            content=message_content
         )
+        
         db.session.add(message)
         db.session.commit()
-        flash('Order cancelled and refund processed.', 'success')
+        
+        flash(message_content, 'success')
+        
     except StripeError as e:
+        db.session.rollback()
         flash(f'Refund failed: {e.user_message}', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error cancelling order: {str(e)}', 'danger')
     
     return redirect(url_for('order.view_orders'))
 
@@ -1584,16 +1601,24 @@ def cancel_order(order_id):
 @login_required
 def request_refund(order_id):
     order = Order.query.get_or_404(order_id)
+    refund_reason = request.form.get('refund_reason', '').strip()
 
+    # Validation checks
     if order.user_id != current_user.user_id:
         flash('Unauthorized action.', 'danger')
         return redirect(url_for('order.view_orders'))
     
-    if order.order_status != 'sent':
-        flash('Only orders that have been sent can request refunds.', 'danger')
+    if order.order_status != 'sent' or order.payment_method == 'cash_on_delivery':
+        flash('Refund not allowed for this order.', 'danger')
         return redirect(url_for('order.view_orders'))
 
+    if not refund_reason:
+        flash('Please provide a refund reason.', 'danger')
+        return redirect(url_for('order.order_detail', order_id=order_id))
+
     order.refund_requested = True
+    order.refund_reason = refund_reason
+    order.refund_status = 'pending'
     db.session.commit()
 
     flash('Refund request submitted. An admin will review it shortly.', 'success')

@@ -31,7 +31,7 @@
                         </button>
 
                         <!-- Refund Processing Button -->
-                        {% if order.refund_requested and order.order_status == 'sent' %}
+                        {% if order.refund_requested and order.refund_status == 'pending' and order.order_status == 'sent' %}
                         <button type="button" class="btn btn-sm btn-warning mb-1" data-bs-toggle="modal" data-bs-target="#refundModal{{order.order_id}}">
                             Process Refund
                         </button>
@@ -60,32 +60,42 @@
                         </div>
 
                         <!-- Refund Processing Modal -->
+                        {% if order.refund_requested %}
                         <div class="modal fade" id="refundModal{{order.order_id}}" tabindex="-1">
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title">Process Refund Request</h5>
+                                        <h5 class="modal-title">Process Refund Request #{{order.order_id}}</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
                                     <div class="modal-body">
+                                        {% if order.refund_reason %}
+                                        <div class="alert alert-info mb-3">
+                                            <h6>User's Refund Reason:</h6>
+                                            {{ order.refund_reason }}
+                                        </div>
+                                        {% endif %}
+                                        
                                         <form action="{{ url_for('admin.process_refund', order_id=order.order_id) }}" method="POST">
                                             <div class="mb-3">
                                                 <label class="form-label">Action</label>
-                                                <select name="action" class="form-select" required>
+                                                <select name="action" class="form-select" required onchange="toggleDenialReason(this)">
                                                     <option value="approve">Approve Refund</option>
                                                     <option value="deny">Deny Refund</option>
                                                 </select>
                                             </div>
-                                            <div class="mb-3">
+                                            <div class="mb-3 denial-reason" style="display: none;">
                                                 <label class="form-label">Denial Reason</label>
-                                                <textarea name="denial_reason" class="form-control"></textarea>
+                                                <textarea name="denial_reason" class="form-control" 
+                                                          placeholder="Enter reason for denial (required)"></textarea>
                                             </div>
-                                            <button type="submit" class="btn btn-primary">Submit</button>
+                                            <button type="submit" class="btn btn-primary w-100">Process Request</button>
                                         </form>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -93,4 +103,18 @@
         </table>
     </div>
 </div>
+
+<script>
+function toggleDenialReason(select) {
+    const modalContent = select.closest('.modal-content');
+    const denialReason = modalContent.querySelector('.denial-reason');
+    denialReason.style.display = select.value === 'deny' ? 'block' : 'none';
+    
+    if(select.value === 'deny') {
+        denialReason.querySelector('textarea').required = true;
+    } else {
+        denialReason.querySelector('textarea').required = false;
+    }
+}
+</script>
 {% endblock %}

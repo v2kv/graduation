@@ -195,6 +195,8 @@ class Order(db.Model):
     refund_requested = db.Column(db.Boolean, default=False)
     refund_status = db.Column(db.String(50), nullable=True)
     refund_denial_reason = db.Column(db.Text, nullable=True)
+    refund_reason = db.Column(db.Text, nullable=True)
+    refund_processed_by = db.Column(db.Integer, db.ForeignKey('admins.admin_id'), nullable=True)
 
 # class OrderItem(db.Model):
 #     __tablename__ = 'order_items'
