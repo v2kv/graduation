@@ -197,6 +197,15 @@ class Order(db.Model):
     refund_denial_reason = db.Column(db.Text, nullable=True)
     refund_reason = db.Column(db.Text, nullable=True)
     refund_processed_by = db.Column(db.Integer, db.ForeignKey('admins.admin_id'), nullable=True)
+    cancel_requested = db.Column(db.Boolean, default=False)
+    cancel_status = db.Column(db.String(50), nullable=True) 
+    cancel_reason = db.Column(db.Text, nullable=True) 
+    cancellation_reason = db.Column(db.Text, nullable=True) 
+    cancel_denial_reason = db.Column(db.Text, nullable=True) 
+    cancel_processed_by = db.Column(db.Integer, db.ForeignKey('admins.admin_id'), nullable=True)
+
+    def __repr__(self):
+        return f'<Order {self.order_id} {self.order_status}>'
 
 # class OrderItem(db.Model):
 #     __tablename__ = 'order_items'

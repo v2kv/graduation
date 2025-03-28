@@ -27,6 +27,7 @@
                                 View Details
                             </a>
 
+                            <!-- Refund Request Section -->
                             {% if order.order_status == 'sent' and order.payment_method != 'cash_on_delivery' %}
                                 {% if not order.refund_requested %}
                                 <form action="{{ url_for('order.request_refund', order_id=order.order_id) }}" 
@@ -47,7 +48,35 @@
                                 {% endif %}
                             {% endif %}
 
-                            {% if (order.order_status == 'payment_successful, delivery pending') or (order.payment_method == 'cash_on_delivery' and order.order_status == 'pending') %}
+                            <!-- Cancellation Request Section -->
+                            {% if order.payment_method == 'cash_on_delivery' 
+                                  and order.order_status == 'sent' 
+                                  and not order.cancel_requested %}
+                                <form action="{{ url_for('order.request_cancel', order_id=order.order_id) }}" 
+                                      method="POST">
+                                    <textarea name="cancel_reason"
+                                              class="form-control form-control-sm mb-2"
+                                              placeholder="Reason for cancellation"
+                                              rows="2"
+                                              required></textarea>
+                                    <button type="submit" class="btn btn-warning btn-sm w-100">
+                                        Request Cancellation
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            <!-- Cancellation Status -->
+                            {% if order.cancel_requested %}
+                                {% if order.cancel_status == 'pending' %}
+                                <button type="button" class="btn btn-secondary btn-sm w-100" disabled>
+                                    Cancellation Pending
+                                </button>
+                                {% endif %}
+                            {% endif %}
+
+                            <!-- Cancel Order Button -->
+                            {% if (order.order_status == 'payment_successful, delivery pending') or 
+                                  (order.payment_method == 'cash_on_delivery' and order.order_status == 'pending') %}
                                 <form action="{{ url_for('order.cancel_order', order_id=order.order_id) }}" 
                                     method="POST">
                                     <button type="submit" class="btn btn-danger btn-sm w-100" 
@@ -58,13 +87,30 @@
                             {% endif %}
                         </div>
 
+                        <!-- Status Alerts -->
                         {% if order.refund_status == 'denied' %}
                         <div class="alert alert-danger mt-3 mb-0">
                             <strong>Refund Denied:</strong> {{ order.refund_denial_reason }}
                         </div>
                         {% elif order.refund_status == 'approved' %}
                         <div class="alert alert-success mt-3 mb-0">
-                            <strong>Refund Approved:</strong> Your refund has been processed
+                            <strong>Refund Approved:</strong> {{ order.refund_reason }}
+                        </div>
+                        {% endif %}
+
+                        {% if order.cancel_status == 'denied' %}
+                        <div class="alert alert-danger mt-3 mb-0">
+                            <strong>Cancellation Denied:</strong> {{ order.cancel_denial_reason }}
+                        </div>
+                        {% elif order.cancel_status == 'approved' %}
+                        <div class="alert alert-success mt-3 mb-0">
+                            <strong>Cancellation Approved:</strong> User request approved
+                        </div>
+                        {% endif %}
+
+                        {% if order.cancellation_reason and not order.cancel_requested %}
+                        <div class="alert alert-info mt-3 mb-0">
+                            <strong>Admin Cancellation:</strong> {{ order.cancellation_reason }}
                         </div>
                         {% endif %}
                     </div>
