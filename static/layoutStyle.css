@@ -5,14 +5,17 @@
 body{
     /* background: #414852; */
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    min-height: 100vh;
+
     position: relative;
     margin: 0;
     padding-bottom: 100px; 
     box-sizing: border-box;
     background-color: #fff6f8;
 }  
+.contentbody{
+    min-height: 60vh;
 
+}
 
 .loginbtn{
     background-color: var(--pink) !important;
