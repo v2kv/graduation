@@ -14,7 +14,6 @@ from db import reset_auto_increment, allowed_file, upload_image, delete_image # 
 from itsdangerous import TimedSerializer as Serializer
 from itsdangerous import SignatureExpired, BadSignature
 from flask_mail import Message
-from flask_dance.contrib.google import google
 
 
 # Blueprints
