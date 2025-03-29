@@ -1,66 +1,85 @@
-{% extends "layout.html" %}
-
-{% block title %}User Dashboard{% endblock %}
-
-{% block content %}
+{% extends "layout.html" %} {% block title %}User Dashboard{% endblock %} {%
+block link %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='user_dashboard.css') }}"
+/>
+{% endblock %} {% block content %}
 <div class="container mt-4">
-    <h1>Welcome, {{ user.username }}!</h1>
-    <hr>
+  <h1>Welcome, {{ user.username }}!</h1>
+  <hr />
 
-    <!-- Profile and Password Management -->
-    <div class="mb-4">
-        <h2>Account Management</h2>
-        <a href="{{ url_for('user.user_profile') }}" class="btn btn-primary">Manage Profile</a>
-        <a href="{{ url_for('user.change_password') }}" class="btn btn-warning">Change Password</a>
+  <h2 class="">My account <i class="fa-solid fa-house"></i></h2>
+  <div class="items">
+    <div class="row">
+      <div class="col">
+        <button
+          class="load-content"
+          data-url="{{ url_for('user.user_profile') }}"
+        >
+          Profile
+        </button>
+      </div>
+      <div class="col">
+        <button
+          class="load-content"
+          data-url="{{ url_for('user.change_password') }}"
+        >
+          Password
+        </button>
+      </div>
+      <div class="col">
+        <button
+          class="load-content"
+          data-url="{{ url_for('user.add_address') }}"
+        >
+          Address
+        </button>
+      </div>
+      <div class="col">
+        <button
+          class="load-content"
+          data-url="{{ url_for('order.view_orders') }}"
+        >
+          Orders
+        </button>
+      </div>
+      <div class="col">
+        <button
+          class="load-content"
+          data-url="{{ url_for('user.user_messages') }}"
+        >
+          Messages
+        </button>
+      </div>
+      <div class="col">
+        <button
+          class="load-content"
+          data-url="{{ url_for('user.user_payments') }}"
+        >
+          Payment
+        </button>
+      </div>
     </div>
+  </div>
 
-    <!-- Address Management -->
-    <div class="mb-4">
-        <h2>My Addresses</h2>
-        <a href="{{ url_for('user.add_address') }}" class="btn btn-success mb-3">Add New Address</a>
-
-        {% if addresses %}
-            <div class="list-group">
-                {% for address in addresses %}
-                    <div class="list-group-item mb-3">
-                        <p><strong>Address:</strong> {{ address.address_line }}</p>
-                        <p><strong>City:</strong> {{ address.city }}</p>
-                        <p><strong>Governorate:</strong> {{ address.governorate or "N/A" }}</p>
-                        <p><strong>Country:</strong> {{ address.country }}</p>
-                        <p><strong>Phone:</strong> {{ address.phone_number }}</p>
-                        <p><strong>Default:</strong> {{ "Yes" if address.is_default else "No" }}</p>
-
-                        <a href="{{ url_for('user.edit_address', address_id=address.address_id) }}" class="btn btn-sm btn-warning">Edit</a>
-
-                        {% if not address.is_default %}
-                            <form method="POST" action="{{ url_for('user.delete_address', address_id=address.address_id) }}" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                            </form>
-                            <form method="POST" action="{{ url_for('user.set_default_address', address_id=address.address_id) }}" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-success">Set as Default</button>
-                            </form>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p>No addresses added yet.</p>
-        {% endif %}
-    </div>
-
-    <div class="mb-4">
-        <h2>My Orders</h2>
-        <a href="{{ url_for('order.view_orders') }}" class="btn btn-info">View Messages</a>
-    </div>
-
-    <div class="mb-4">
-        <h2>My Messages</h2>
-        <a href="{{ url_for('user.user_messages') }}" class="btn btn-info">View Messages</a>
-    </div>
-
-    <div class="mb-4">
-        <h2>My Payments</h2>
-        <a href="{{ url_for('user.user_payments') }}" class="btn btn-primary">View Payments</a>
-    </div>
+  <div class="dynamic-page"></div>
 </div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $(".load-content").click(function () {
+      let pageUrl = $(this).data("url"); // Get URL from button's data-url attribute
+
+      $(".dynamic-page").html("<p>Loading...</p>"); // Show loading message
+
+      $(".dynamic-page").load(pageUrl, function (response, status, xhr) {
+        if (status === "error") {
+          $(".dynamic-page").html("<p>Error loading content.</p>");
+        }
+      });
+    });
+  });
+</script>
+
 {% endblock %}

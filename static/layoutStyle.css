@@ -59,8 +59,20 @@ body{
         /* End nav bar */
 /* ***************************** */
 
+.nav-item button{
+    letter-spacing: 0.2em;
+    align-items: center;
 
+}
 
+.nav-item button:hover{
+   background-color: var(--pink) !important;
+   color:white !important;
+
+}
+.nav-btns a:hover{
+text-decoration: none !important;
+}
 
 /* ***************************** */
         /* Start Header */

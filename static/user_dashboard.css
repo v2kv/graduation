@@ -1,0 +1,35 @@
+:root{
+    --pink:#e5345b;
+}
+.row button{
+    border: none;
+    color: #333;
+
+    border-left: solid 1px var(--pink);
+    border-radius: 5px;
+    margin: 10px;
+    background-color: #fff3f6;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 600;
+  
+    transition: all 0.3s ease-in-out;
+    margin: 10px 0px;
+
+}
+.row button:hover{
+    background-color: var(--pink) !important;
+    color: white !important; 
+    border-radius: 5px;
+
+   
+}
+.row button:active{
+    background-color: var(--pink) !important;
+    color: white !important; 
+    border-radius: 5px;
+    width: 95px;
+    background: var(--pink);
+
+   
+}

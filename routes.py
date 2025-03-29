@@ -794,8 +794,8 @@ def user_logout():
 @user_bp.route('/user/dashboard')
 @login_required
 def user_dashboard():
-    addresses = Address.query.filter_by(user_id=current_user.user_id).all()
-    return render_template('user/user_dashboard.html', user=current_user, addresses=addresses, show_footer=True)
+   
+    return render_template('user/user_dashboard.html', user=current_user, show_footer=True)
 
 # Profile Management
 @user_bp.route('/user/profile', methods=['GET', 'POST'])
@@ -819,7 +819,7 @@ def change_password():
         confirm_password = request.form['confirm_password']
 
         if not check_password_hash(current_user.password_hash, current_password):
-            flash('Current password is incorrect.', 'danger')
+            print('Current password is incorrect.', 'danger')
             return redirect(url_for('user.change_password'))
 
         if new_password != confirm_password:
@@ -846,6 +846,7 @@ IRAQ_GOVERNORATES = [
 @user_bp.route('/user/address/add', methods=['GET', 'POST'])
 @login_required
 def add_address():
+    addresses = Address.query.filter_by(user_id=current_user.user_id).all()
     if request.method == 'POST':
         address_line = request.form['address_line']
         city = request.form['city']
@@ -895,13 +896,13 @@ def add_address():
             db.session.add(new_address)
             db.session.commit()
             flash("Address added successfully!", "success")
-            return redirect(url_for('user.user_dashboard'))
+            return redirect(url_for('user.add_address'))
         except Exception as e:
             db.session.rollback()
             flash(f"An error occurred: {str(e)}", "danger")
             return redirect(url_for('user.add_address'))
 
-    return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
+    return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES,addresses=addresses)
 
 # Edit Address
 @user_bp.route('/user/address/<int:address_id>/edit', methods=['GET', 'POST'])
@@ -956,7 +957,7 @@ def edit_address(address_id):
         try:
             db.session.commit()
             flash("Address updated successfully!", "success")
-            return redirect(url_for('user.user_dashboard'))
+            return redirect(url_for('user.add_address'))
         except Exception as e:
             db.session.rollback()
             flash(f"An error occurred: {str(e)}", "danger")
