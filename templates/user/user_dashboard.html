@@ -17,7 +17,10 @@ block link %}
           class="load-content"
           data-url="{{ url_for('user.user_profile') }}"
         >
-          Profile
+          <div class="row">
+            <div class="col-2"><i class="fa-solid fa-user"> </i></div>
+            <div class="col">Profile</div>
+          </div>
         </button>
       </div>
       <div class="col">
@@ -25,7 +28,10 @@ block link %}
           class="load-content"
           data-url="{{ url_for('user.change_password') }}"
         >
-          Password
+          <div class="row">
+            <div class="col-2"><i class="fa-solid fa-lock"> </i></div>
+            <div class="col">Password</div>
+          </div>
         </button>
       </div>
       <div class="col">
@@ -33,7 +39,10 @@ block link %}
           class="load-content"
           data-url="{{ url_for('user.add_address') }}"
         >
-          Address
+          <div class="row">
+            <div class="col-2"><i class="fa-solid fa-location-dot"> </i></div>
+            <div class="col">Address</div>
+          </div>
         </button>
       </div>
       <div class="col">
@@ -41,7 +50,10 @@ block link %}
           class="load-content"
           data-url="{{ url_for('order.view_orders') }}"
         >
-          Orders
+          <div class="row">
+            <div class="col-2"><i class="fa-solid fa-user"> </i></div>
+            <div class="col">Orders</div>
+          </div>
         </button>
       </div>
       <div class="col">
@@ -49,7 +61,10 @@ block link %}
           class="load-content"
           data-url="{{ url_for('user.user_messages') }}"
         >
-          Messages
+          <div class="row">
+            <div class="col-2"><i class="fa-solid fa-envelope"> </i></div>
+            <div class="col">Messages</div>
+          </div>
         </button>
       </div>
       <div class="col">
@@ -57,7 +72,10 @@ block link %}
           class="load-content"
           data-url="{{ url_for('user.user_payments') }}"
         >
-          Payment
+          <div class="row">
+            <div class="col-2"><i class="fa-solid fa-money-bill"> </i></div>
+            <div class="col">Payment</div>
+          </div>
         </button>
       </div>
     </div>

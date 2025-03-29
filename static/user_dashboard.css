@@ -40,7 +40,7 @@
     background-color: var(--pink) !important;
     color: white !important; 
     border-radius: 5px;
-    width: 95px;
+    /* width: 95px; */
     background: var(--pink);
 
    
