@@ -1,119 +1,126 @@
 {% extends "layout.html" %} {% block title %}Add Address{% endblock %} {% block
 content %}
-<div class="mb-4">
-  <h2>My Addresses</h2>
+<div class="page-content">
+  <div class="mb-4">
+    <h2>My Addresses</h2>
 
-  {% if addresses %}
-  <div class="list-group">
-    {% for address in addresses %}
-    <div class="list-group-item mb-3">
-      <p><strong>Address:</strong> {{ address.address_line }}</p>
-      <p><strong>City:</strong> {{ address.city }}</p>
-      <p><strong>Governorate:</strong> {{ address.governorate or "N/A" }}</p>
-      <p><strong>Country:</strong> {{ address.country }}</p>
-      <p><strong>Phone:</strong> {{ address.phone_number }}</p>
-      <p>
-        <strong>Default:</strong> {{ "Yes" if address.is_default else "No" }}
-      </p>
+    {% if addresses %}
+    <div class="list-group">
+      {% for address in addresses %}
+      <div class="list-group-item mb-3">
+        <p><strong>Address:</strong> {{ address.address_line }}</p>
+        <p><strong>City:</strong> {{ address.city }}</p>
+        <p><strong>Governorate:</strong> {{ address.governorate or "N/A" }}</p>
+        <p><strong>Country:</strong> {{ address.country }}</p>
+        <p><strong>Phone:</strong> {{ address.phone_number }}</p>
+        <p>
+          <strong>Default:</strong> {{ "Yes" if address.is_default else "No" }}
+        </p>
 
-      <a
-        href="{{ url_for('user.edit_address', address_id=address.address_id) }}"
-        class="btn btn-sm btn-warning"
-        >Edit</a
-      >
+        <a
+          href="{{ url_for('user.edit_address', address_id=address.address_id) }}"
+          class="btn btn-sm btn-warning"
+          >Edit</a
+        >
 
-      {% if not address.is_default %}
-      <form
-        method="POST"
-        action="{{ url_for('user.delete_address', address_id=address.address_id) }}"
-        class="d-inline"
-      >
-        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-      </form>
-      <form
-        method="POST"
-        action="{{ url_for('user.set_default_address', address_id=address.address_id) }}"
-        class="d-inline"
-      >
-        <button type="submit" class="btn btn-sm btn-success">
-          Set as Default
-        </button>
-      </form>
-      {% endif %}
+        {% if not address.is_default %}
+        <form
+          method="POST"
+          action="{{ url_for('user.delete_address', address_id=address.address_id) }}"
+          class="d-inline"
+        >
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+        <form
+          method="POST"
+          action="{{ url_for('user.set_default_address', address_id=address.address_id) }}"
+          class="d-inline"
+        >
+          <button type="submit" class="btn btn-sm btn-success">
+            Set as Default
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
+    {% else %}
+    <p>No addresses added yet.</p>
+    {% endif %}
   </div>
-  {% else %}
-  <p>No addresses added yet.</p>
-  {% endif %}
-</div>
-<div class="container mt-4">
-  <h2>Add New Address</h2>
-  <form method="POST">
-    <div class="form-group">
-      <label for="address_line">Address Line</label>
-      <input
-        type="text"
-        name="address_line"
-        id="address_line"
-        class="form-control"
-        required
-        placeholder="Enter address line"
-      />
-    </div>
-    <div class="form-group">
-      <label for="city">City</label>
-      <input
-        type="text"
-        name="city"
-        id="city"
-        class="form-control"
-        required
-        placeholder="Enter city"
-      />
-    </div>
-    <div class="form-group">
-      <label for="country">Country</label>
-      <input
-        type="text"
-        name="country"
-        id="country"
-        class="form-control"
-        value="Iraq"
-        readonly
-      />
-    </div>
-    <div class="form-group">
-      <label for="governorate">Governorate</label>
-      <select name="governorate" id="governorate" class="form-control" required>
-        <option value="">Select a Governorate</option>
-        {% for governorate in governorates %}
-        <option value="{{ governorate }}">{{ governorate }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="phone_number">Phone Number</label>
-      <input
-        type="text"
-        name="phone_number"
-        id="phone_number"
-        class="form-control"
-        required
-        placeholder="07XXXXXXXXX"
-      />
-    </div>
-    <div class="form-check">
-      <input
-        type="checkbox"
-        name="is_default"
-        id="is_default"
-        class="form-check-input"
-        value="True"
-      />
-      <label for="is_default" class="form-check-label">Set as Default</label>
-    </div>
-    <button type="submit" class="btn btn-primary mt-3">Save Address</button>
-  </form>
+  <div class="container mt-4">
+    <h2>Add New Address</h2>
+    <form method="POST">
+      <div class="form-group">
+        <label for="address_line">Address Line</label>
+        <input
+          type="text"
+          name="address_line"
+          id="address_line"
+          class="form-control"
+          required
+          placeholder="Enter address line"
+        />
+      </div>
+      <div class="form-group">
+        <label for="city">City</label>
+        <input
+          type="text"
+          name="city"
+          id="city"
+          class="form-control"
+          required
+          placeholder="Enter city"
+        />
+      </div>
+      <div class="form-group">
+        <label for="country">Country</label>
+        <input
+          type="text"
+          name="country"
+          id="country"
+          class="form-control"
+          value="Iraq"
+          readonly
+        />
+      </div>
+      <div class="form-group">
+        <label for="governorate">Governorate</label>
+        <select
+          name="governorate"
+          id="governorate"
+          class="form-control"
+          required
+        >
+          <option value="">Select a Governorate</option>
+          {% for governorate in governorates %}
+          <option value="{{ governorate }}">{{ governorate }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="phone_number">Phone Number</label>
+        <input
+          type="text"
+          name="phone_number"
+          id="phone_number"
+          class="form-control"
+          required
+          placeholder="07XXXXXXXXX"
+        />
+      </div>
+      <div class="form-check">
+        <input
+          type="checkbox"
+          name="is_default"
+          id="is_default"
+          class="form-check-input"
+          value="True"
+        />
+        <label for="is_default" class="form-check-label">Set as Default</label>
+      </div>
+      <button type="submit" class="btn btn-primary mt-3">Save Address</button>
+    </form>
+  </div>
 </div>
 {% endblock %}

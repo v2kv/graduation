@@ -5,11 +5,11 @@ block link %}
   href="{{ url_for('static', filename='user_dashboard.css') }}"
 />
 {% endblock %} {% block content %}
-<div class="container mt-4">
+<div class="container mt-4 main-c">
   <h1>Welcome, {{ user.username }}!</h1>
   <hr />
 
-  <h2 class="">My account <i class="fa-solid fa-house"></i></h2>
+  <h4 class="">My account |<i class="fa-solid fa-house iconsss"></i></h4>
   <div class="items">
     <div class="row">
       <div class="col">
@@ -68,16 +68,29 @@ block link %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
   $(document).ready(function () {
-    $(".load-content").click(function () {
-      let pageUrl = $(this).data("url"); // Get URL from button's data-url attribute
+    $(".load-content").click(async function () {
+      let pageUrl = $(this).data("url");
 
-      $(".dynamic-page").html("<p>Loading...</p>"); // Show loading message
+      $(".dynamic-page").html("<p>Loading...</p>");
 
-      $(".dynamic-page").load(pageUrl, function (response, status, xhr) {
-        if (status === "error") {
-          $(".dynamic-page").html("<p>Error loading content.</p>");
-        }
-      });
+      try {
+        let response = await fetch(pageUrl);
+        let text = await response.text();
+
+        // Create a temporary div to parse HTML
+        let tempDiv = $("<div>").html(text);
+        let content = tempDiv.find(".page-content").html();
+        let scripts = tempDiv.find("script");
+
+        $(".dynamic-page").hide().html(content).fadeIn(200);
+
+        // Execute scripts manually
+        scripts.each(function () {
+          $.globalEval(this.innerHTML);
+        });
+      } catch (error) {
+        $(".dynamic-page").html("<p>Error loading content.</p>");
+      }
     });
   });
 </script>

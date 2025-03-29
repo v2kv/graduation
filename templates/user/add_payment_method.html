@@ -1,65 +1,66 @@
-{% extends "layout.html" %}
-
-{% block title %}Add Payment Method{% endblock %}
-
-{% block content %}
-<div class="container mt-4">
-    <h1>Add Payment Method</h1>
-    <hr>
-    <!-- Form for adding payment method -->
-    <form id="payment-form" method="POST">
-        <div class="form-group">
-            <label for="card-element">Card Details</label>
-            <!-- Stripe Card Element Placeholder -->
-            <div id="card-element" class="form-control"></div>
-            <!-- Error messages -->
-            <div id="card-errors" class="text-danger mt-2" role="alert"></div>
-        </div>
-        <button type="submit" class="btn btn-primary mt-3">Save Payment Method</button>
-    </form>
+{% extends "layout.html" %} {% block title %}Add Payment Method{% endblock %} {%
+block content %}
+<div class="container mt-4 page-content">
+  <h1>Add Payment Method</h1>
+  <hr />
+  <!-- Form for adding payment method -->
+  <form id="payment-form" method="POST">
+    <div class="form-group">
+      <label for="card-element">Card Details</label>
+      <!-- Stripe Card Element Placeholder -->
+      <div id="card-element" class="form-control"></div>
+      <!-- Error messages -->
+      <div id="card-errors" class="text-danger mt-2" role="alert"></div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">
+      Save Payment Method
+    </button>
+  </form>
 </div>
 
 <!-- Include Stripe.js -->
 <script src="https://js.stripe.com/v3/"></script>
 <script>
-    // Initialize Stripe.js
-    const stripe = Stripe("pk_test_51QhcQwGK7HgCufdX8dCTXfvu5nc28q4xxPDMPXvyHwAgOvE46T6Mu0P8PMfM3cFTEDTglBmJyVtDRFZv0PjIO6n000ztEGQoGZ");
-    const elements = stripe.elements();
+  // Initialize Stripe.js
+  const stripe = Stripe(
+    "pk_test_51QhcQwGK7HgCufdX8dCTXfvu5nc28q4xxPDMPXvyHwAgOvE46T6Mu0P8PMfM3cFTEDTglBmJyVtDRFZv0PjIO6n000ztEGQoGZ"
+  );
+  const elements = stripe.elements();
 
-    // Create a card element with postal code disabled
-    const card = elements.create("card", {
-        style: { base: { fontSize: "16px" } },
-        hidePostalCode: true, // Disable postal code
+  // Create a card element with postal code disabled
+  const card = elements.create("card", {
+    style: { base: { fontSize: "16px" } },
+    hidePostalCode: true, // Disable postal code
+  });
+
+  card.mount("#card-element");
+
+  // Handle form submission
+  const form = document.getElementById("payment-form");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const { paymentMethod, error } = await stripe.createPaymentMethod({
+      type: "card",
+      card: card,
     });
 
-    card.mount("#card-element");
+    if (error) {
+      const errorElement = document.getElementById("card-errors");
+      errorElement.textContent = error.message;
+    } else {
+      const response = await fetch("{{ url_for('user.add_payment_method') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `payment_method_id=${paymentMethod.id}`,
+      });
 
-    // Handle form submission
-    const form = document.getElementById("payment-form");
-    form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        const { paymentMethod, error } = await stripe.createPaymentMethod({
-            type: "card",
-            card: card,
-        });
-
-        if (error) {
-            const errorElement = document.getElementById("card-errors");
-            errorElement.textContent = error.message;
-        } else {
-            const response = await fetch("{{ url_for('user.add_payment_method') }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: `payment_method_id=${paymentMethod.id}`,
-            });
-
-            if (response.ok) {
-                window.location.href = "{{ url_for('user.user_payments') }}";
-            } else {
-                alert("Failed to save payment method. Please try again.");
-            }
-        }
-    });
+      if (response.ok) {
+        window.location.href = "{{ url_for('user.user_payments') }}";
+      } else {
+        alert("Failed to save payment method. Please try again.");
+      }
+    }
+  });
 </script>
 {% endblock %}
