@@ -169,3 +169,84 @@ footer p{
         display: none;
     }
 }
+/* ***************************** */
+        /* Start Chat bot  */
+/* ***************************** */
+.chat-popup {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    display: none;
+    z-index: 1000;
+  }
+  .chat-header {
+    padding: 1rem;
+    background: #007bff;
+    color: white;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chat-body {
+    height: 300px;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+  .chat-input {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid #ddd;
+  }
+  .assistant-message {
+    background: #f1f1f1;
+    padding: 0.5rem;
+    border-radius: 5px;
+    margin-bottom: 0.5rem;
+  }
+  .user-message {
+    background: #e3f2fd;
+    padding: 0.5rem;
+    border-radius: 5px;
+    margin-bottom: 0.5rem;
+    text-align: right;
+  }
+  .chat-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 999;
+    padding: 1rem 1.5rem;
+    border-radius: 25px;
+    background: #007bff;
+    color: white;
+    border: none;
+  }
+  .loading-indicator {
+    color: #666;
+    font-style: italic;
+  }
+  .fa-spinner {
+    margin-right: 8px;
+  }
+  .error {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+  }
+  /* Add these styles to fix any footer alignment issues */
+  .wrapper {
+    width: 100%;
+    position: relative;
+    clear: both;
+    margin-bottom: 30px; /* Space for chat button */
+  }
+  /* ***************************** */
+        /* END Chat bot  */
+/* ***************************** */
