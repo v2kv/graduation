@@ -149,3 +149,9 @@ footer p{
 /* ***************************** */
         /* Start Footer */
 /* ***************************** */
+
+@media (max-width: 768px){
+    span.text-uppercase.fw-lighter.ms-2{
+        display: none;
+    }
+}

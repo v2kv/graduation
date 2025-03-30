@@ -88,7 +88,9 @@ a:hover {
 input:checked{
     background-color: red;
 }
-
+#accountstat{
+    display: none;
+}
 .signup-btn{
     margin-top: 20px;
     padding: 10px 20px;
@@ -104,7 +106,12 @@ input:checked{
     color: #ff4b2b;
 }
 @media (max-width: 768px){
-
+    #accountstat{
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+        opacity: .8;
+    }
     .login-container{
         display: flex;
        flex-direction: column;

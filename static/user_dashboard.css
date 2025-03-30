@@ -1,6 +1,10 @@
 :root{
     --pink:#e5345b;
 }
+.accountstat{
+   display: hide;
+
+}
 .main-c{
     background-color: white;
     border-radius: 10px;
