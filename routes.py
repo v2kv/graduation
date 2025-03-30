@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, session, request, render_template, flash, redirect, url_for, current_app, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
-import re # check phone number format
+import re # check phone number and password format using regex
 import stripe # simulate payments
 from stripe.error import StripeError
 from db import db, mail
@@ -11,7 +11,7 @@ from functools import wraps
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
-from db import reset_auto_increment, allowed_file, upload_image, delete_image # functions I defined in db.py
+from db import reset_auto_increment, allowed_file, upload_image, delete_image # functions defined in db.py
 from itsdangerous import TimedSerializer as Serializer
 from itsdangerous import SignatureExpired, BadSignature
 from flask_mail import Message
@@ -48,7 +48,7 @@ def send_confirmation_email(email, token, user_type):
     else:
         confirmation_url = url_for('user.confirm_email', token=token, _external=True)
         
-    msg.html = render_template('confirmation.html', confirmation_url=confirmation_url)
+    msg.html = render_template('emails/confirmation.html', confirmation_url=confirmation_url)
     mail.send(msg)
 
 def get_all_subcategories(category):
@@ -399,6 +399,24 @@ def admin_register(secret_token):
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return redirect(url_for('admin.admin_register', secret_token=secret_token))
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+            return redirect(url_for('admin.admin_register', secret_token=secret_token))
+        
+        if not re.search(r'[A-Z]', password):
+            flash('Password must contain at least one uppercase letter.', 'danger')
+            return redirect(url_for('admin.admin_register', secret_token=secret_token))
+        
+        if not re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', password):
+            flash('Password must contain at least one special character.', 'danger')
+            return redirect(url_for('admin.admin_register', secret_token=secret_token))
+            
         password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
         if Admin.query.filter((Admin.username == username) | (Admin.email == email)).first():
@@ -409,11 +427,9 @@ def admin_register(secret_token):
         db.session.add(new_admin)
         db.session.commit()
 
-        # Generate email confirmation token
         s = Serializer(current_app.config['SECRET_KEY'])
         token = s.dumps({'admin_id': new_admin.admin_id})
 
-        # Send confirmation email
         send_confirmation_email(email, token, 'admin')
 
         flash('Admin registered successfully! Please check your email to confirm your account.', 'success')
@@ -890,7 +906,6 @@ def delete_user(user_id):
 # User Routes
 @user_bp.route('/user/register', methods=['GET', 'POST'])
 def user_register():
-    # Check if user is already authenticated and is not a regular user
     if current_user.is_authenticated:
         if current_user.role != 'user':
             return redirect(url_for("index.index"))
@@ -903,6 +918,24 @@ def user_register():
         last_name = request.form['last_name']
         email = request.form['email']
         password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return redirect(url_for('user.user_register'))
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+            return redirect(url_for('user.user_register'))
+        
+        if not re.search(r'[A-Z]', password):
+            flash('Password must contain at least one uppercase letter.', 'danger')
+            return redirect(url_for('user.user_register'))
+        
+        if not re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', password):
+            flash('Password must contain at least one special character.', 'danger')
+            return redirect(url_for('user.user_register'))
+        
         password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
         if User.query.filter((User.username == username) | (User.user_email == email)).first():
@@ -919,17 +952,14 @@ def user_register():
         db.session.add(new_user)
         db.session.commit()
 
-        # Generate email confirmation token
         s = Serializer(current_app.config['SECRET_KEY'])
         token = s.dumps({'user_id': new_user.user_id})
 
-        # Send confirmation email
         send_confirmation_email(email, token, 'user')
 
         flash('User registered successfully! Please check your email to confirm your account.', 'success')
         return redirect(url_for('user.user_login'))
 
-    # Render the registration template for GET requests
     return render_template('user/user_register.html', show_footer=True)
 
 @user_bp.route('/user/confirm/<token>')
@@ -1014,7 +1044,6 @@ def user_profile():
 @user_bp.route('/user/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
-    # flash('Current password is incorrect.', 'danger')
     if request.method == 'POST':
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
@@ -1034,7 +1063,78 @@ def change_password():
         return jsonify({'status': 'success', 'message': 'Password changed successfully!', 'redirect': url_for('user.user_dashboard')}), 200
 
     return render_template('user/change_password.html')
-       
+
+@user_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = User.query.filter_by(user_email=email).first()
+        
+        if user:
+            s = Serializer(current_app.config['SECRET_KEY'])
+            token = s.dumps({'user_id': user.user_id, 'type': 'reset'})
+            
+            reset_url = url_for('user.reset_password', token=token, _external=True)
+            
+            msg = Message('Reset Your Password',
+                        sender=current_app.config['MAIL_DEFAULT_SENDER'],
+                        recipients=[email])
+            msg.html = render_template('emails/reset_password.html', reset_url=reset_url)
+            mail.send(msg)
+            
+            current_app.logger.info(f"Password reset email sent to {email}")
+        
+        flash('If an account exists with that email, we have sent password reset instructions.', 'info')
+        return redirect(url_for('user.user_login'))
+    
+    return render_template('user/forgot_password.html', show_footer=True)
+
+@user_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    s = Serializer(current_app.config['SECRET_KEY'])
+    try:
+        data = s.loads(token, max_age=3600) 
+        if not data or 'user_id' not in data or data.get('type') != 'reset':
+            flash('Invalid or expired reset link. Please try again.', 'danger')
+            return redirect(url_for('user.forgot_password'))
+    except (SignatureExpired, BadSignature):
+        flash('Invalid or expired reset link. Please try again.', 'danger')
+        return redirect(url_for('user.forgot_password'))
+    
+    user = User.query.get(data['user_id'])
+    if not user:
+        flash('Invalid or expired reset link. Please try again.', 'danger')
+        return redirect(url_for('user.forgot_password'))
+    
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Validate password
+        if not password or len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+            return render_template('user/reset_password.html', token=token, show_footer=True)
+        
+        if not re.search(r'[A-Z]', password):
+            flash('Password must contain at least one uppercase letter.', 'danger')
+            return render_template('user/reset_password.html', token=token, show_footer=True)
+        
+        if not re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', password):
+            flash('Password must contain at least one special character.', 'danger')
+            return render_template('user/reset_password.html', token=token, show_footer=True)
+        
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return render_template('user/reset_password.html', token=token, show_footer=True)
+        
+        user.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        db.session.commit()
+        
+        flash('Your password has been updated. You can now log in with your new password.', 'success')
+        return redirect(url_for('user.user_login'))
+    
+    return render_template('user/reset_password.html', token=token, show_footer=True)
+
 
 # Default country and Iraqi governorates
 DEFAULT_COUNTRY = "Iraq"
@@ -1224,6 +1324,12 @@ def delete_address(address_id):
 @login_required
 def user_payments():
     payment_methods = PaymentMethod.query.filter_by(user_id=current_user.user_id).all()
+    
+    # Check if this is an AJAX request
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render_template('user/payment_methods_list_ajax.html', payment_methods=payment_methods)
+    
+    # Regular request returns the full template
     return render_template('user/user_payments.html', payment_methods=payment_methods)
 
 
@@ -1231,6 +1337,7 @@ def user_payments():
 @login_required
 def add_payment_method():
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+    
     if request.method == 'POST':
         payment_method_id = request.form.get('payment_method_id')
 
@@ -1270,9 +1377,21 @@ def add_payment_method():
         db.session.add(new_payment)
         db.session.commit()
 
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True, 
+                'message': 'Payment method added successfully!'
+            })
+        
         flash("Payment method added successfully!", "success")
         return redirect(url_for('user.user_payments'))
+    
+    # GET request
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render_template('user/add_payment_method_ajax.html')
+    
     return render_template('user/add_payment_method.html')
+
 
 @user_bp.route('/user/payments/<int:payment_id>/set-default', methods=['POST'])
 @login_required
@@ -1281,6 +1400,9 @@ def set_default_payment_method(payment_id):
 
     # Ensure the user owns the payment method
     if payment.user_id != current_user.user_id:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Unauthorized action.'})
+        
         flash("Unauthorized action.", "danger")
         return redirect(url_for('user.user_payments'))
 
@@ -1293,19 +1415,34 @@ def set_default_payment_method(payment_id):
         db.session.commit()
 
         # Update Stripe customer's default payment method
+        stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
         stripe.Customer.modify(
             current_user.stripe_customer_id,
             invoice_settings={
                 'default_payment_method': payment.stripe_payment_method_id
             }
         )
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            payment_methods = PaymentMethod.query.filter_by(user_id=current_user.user_id).all()
+            html = render_template('user/payment_methods_list_ajax.html', payment_methods=payment_methods)
+            return jsonify({
+                'success': True, 
+                'message': 'Default payment method updated successfully!',
+                'html': html
+            })
 
         flash("Default payment method updated successfully!", "success")
     except Exception as e:
         db.session.rollback()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'})
+        
         flash(f"An error occurred: {str(e)}", "danger")
 
     return redirect(url_for('user.user_payments'))
+
 
 @user_bp.route('/user/payments/<int:payment_id>/delete', methods=['POST'])
 @login_required
@@ -1314,6 +1451,9 @@ def delete_payment_method(payment_id):
 
     # Ensure the user owns the payment method
     if payment.user_id != current_user.user_id:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Unauthorized action.'})
+        
         flash("Unauthorized action.", "danger")
         return redirect(url_for('user.user_payments'))
 
@@ -1321,9 +1461,23 @@ def delete_payment_method(payment_id):
         db.session.delete(payment)
         db.session.commit()
         reset_auto_increment(db, 'payment_methods', 'payment_id')
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            payment_methods = PaymentMethod.query.filter_by(user_id=current_user.user_id).all()
+            html = render_template('user/payment_methods_list_ajax.html', payment_methods=payment_methods)
+            return jsonify({
+                'success': True, 
+                'message': 'Payment method deleted successfully!',
+                'html': html
+            })
+        
         flash("Payment method deleted successfully!", "success")
     except Exception as e:
         db.session.rollback()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'})
+        
         flash(f"An error occurred: {str(e)}", "danger")
 
     return redirect(url_for('user.user_payments'))

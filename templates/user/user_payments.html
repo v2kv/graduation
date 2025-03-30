@@ -15,10 +15,8 @@
 
 <script>
   $(document).ready(function() {
-    // Load payment methods on page load
     loadPaymentMethods();
     
-    // Add payment method button click
     $("#add-payment-method-btn").click(function() {
       $.ajax({
         url: "{{ url_for('user.add_payment_method') }}",
@@ -34,7 +32,6 @@
       });
     });
     
-    // Function to load payment methods
     function loadPaymentMethods() {
       $.ajax({
         url: "{{ url_for('user.user_payments') }}",
@@ -43,7 +40,6 @@
         success: function(response) {
           $("#payment-methods-list").html(response);
           
-          // Attach event handlers to the newly loaded content
           reattachPaymentMethodHandlers();
         },
         error: function() {
@@ -52,11 +48,9 @@
       });
     }
     
-    // Make the reattachPaymentMethodHandlers function globally available
     window.reattachPaymentMethodHandlers = function() {
       console.log("Attaching payment method event handlers");
       
-      // Set default payment method form submission
       $(".set-default-form").off("submit").on("submit", function(e) {
         e.preventDefault();
         const url = $(this).attr("action");
@@ -70,7 +64,7 @@
             if (response.success) {
               showMessage(response.message, "success");
               $("#payment-methods-list").html(response.html);
-              reattachPaymentMethodHandlers(); // Re-attach handlers to new content
+              reattachPaymentMethodHandlers(); 
             } else {
               showMessage(response.message, "danger");
             }
@@ -82,7 +76,6 @@
         });
       });
       
-      // Delete payment method form submission
       $(".delete-payment-form").off("submit").on("submit", function(e) {
         e.preventDefault();
         if (confirm("Are you sure you want to delete this payment method?")) {
@@ -97,7 +90,7 @@
               if (response.success) {
                 showMessage(response.message, "success");
                 $("#payment-methods-list").html(response.html);
-                reattachPaymentMethodHandlers(); // Re-attach handlers to new content
+                reattachPaymentMethodHandlers(); 
               } else {
                 showMessage(response.message, "danger");
               }
@@ -113,7 +106,6 @@
       console.log("Payment method event handlers attached successfully");
     };
     
-    // Helper function to show status messages
     function showMessage(message, type) {
       $("#status-message").html(
         `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
@@ -122,13 +114,11 @@
         </div>`
       );
       
-      // Auto-dismiss after 5 seconds
       setTimeout(function() {
         $(".alert").alert('close');
       }, 5000);
     }
     
-    // Make showMessage globally available
     window.showMessage = showMessage;
   });
 </script>
