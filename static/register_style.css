@@ -1,0 +1,21 @@
+.password-paragraph{
+    /* background: #befdbe; */
+    /* color: white; */
+    border-radius: 10px;
+    padding: 5px;
+}
+.password-paragraph li{
+    padding-left: 1em;
+    font-size: 0.8em;
+    color: #00cc00;
+}
+
+.password-paragraph p{
+margin: 0px;
+    font-size: 0.9em;
+
+}
+button.btn.btn-primary{
+    margin-top: 10px;
+    width: 100%;
+}
