@@ -12,11 +12,25 @@ body{
     box-sizing: border-box;
     background-color: #fff6f8;
 }  
+button.btn.btn-primary{
+    background-color: var(--pink) !important;
+    border: none;
+    color: white !important;
+    font-weight: 600;
+}
 .contentbody{
     min-height: 60vh;
 
 }
-
+/* Centering the .center-category container */
+.center-category {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px; /* Optional: space between the categories */
+  }
+  
+ 
 .loginbtn{
     background-color: var(--pink) !important;
     border: none;

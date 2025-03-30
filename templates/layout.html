@@ -42,6 +42,7 @@
           />
           <span class="text-uppercase fw-lighter ms-2">SOUQ KHANA</span>
         </a>
+
         {% if current_user.is_authenticated %} {% if current_user.role !=
         'admin' %}
         <div class="order-lg-2 nav-btns">
@@ -80,22 +81,27 @@
               >
             </button>
           </a>
-
+          <a href="{{ url_for('user.user_logout') }}">
+            <button type="button" class="btn position-relative">
+              <i class="fa-1x fa fa-sign-out" title="logout"></i>
+            </button>
+          </a>
           <div
             id="flash-messages"
             class="position-fixed top-0 start-50 translate-middle-x mt-3"
             style="z-index: 1050; max-width: 90%"
           ></div>
           {% endif %} {% endif %}
+          <button
+            class="navbar-toggler border-0"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navMenu"
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
         </div>
-        <button
-          class="navbar-toggler border-0"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navMenu"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
+
         <div class="collapse navbar-collapse order-lg-1" id="navMenu">
           <ul class="navbar-nav mx-auto text-center">
             {% if current_user.is_authenticated %} {% if current_user.role ==
@@ -117,28 +123,63 @@
               >
             </li>
             {% else %}
+
             <li class="nav-item px-2 py-2">
               <a
                 class="nav-link text-uppercase text-dark"
-                href="{{ url_for('user.user_dashboard') }}"
-                >Dashboard</a
+                href="/category/electronics"
+                >Electronics</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a class="nav-link text-uppercase text-dark" href="/category/Home"
+                >Home & Appliance</a
               >
             </li>
             <li class="nav-item px-2 py-2">
               <a
                 class="nav-link text-uppercase text-dark"
-                href="{{ url_for('user.user_logout') }}"
-                >Logout</a
+                href="/category/Health"
+                >Health</a
               >
             </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="/category/Tools"
+                >Tools</a
+              >
+            </li>
+
             {% endif %} {% else %}
+
             <li class="nav-item px-2 py-2">
               <a
                 class="nav-link text-uppercase text-dark"
-                href="{{ url_for('index.index') }}"
+                href="/category/electronics"
+                >Electronics</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a class="nav-link text-uppercase text-dark" href="/category/Home"
                 >Home</a
               >
             </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="/category/Health"
+                >Health</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="/category/Tools"
+                >Tools</a
+              >
+            </li>
+
             <li class="nav-item px-2 py-2">
               <a
                 class="nav-link text-uppercase text-dark"

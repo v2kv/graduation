@@ -1,4 +1,5 @@
-{% extends 'layout.html' %} {% block title %}Home{% endblock %} {% block link %}
+{% extends 'layout.html' %} {% block title
+%}SOUQKHANA>{{category.category_name}} {% endblock %} {% block link %}
 <link
   rel="stylesheet"
   href="{{ url_for('static', filename='index_style.css') }}"
@@ -82,36 +83,17 @@
 </style>
 {% endblock %} {% block content %}
 <div class="text-center my-5">
-  <h1>Welcome to Souq Khana</h1>
-  <p>Discover the best products at unbeatable prices!</p>
+  <h1>Welcome to {{category.category_name}} Category</h1>
 </div>
 
 <div class="row mb-4">
-  <div class="col-md-8">
+  <div class="col">
     <input
       type="text"
       id="search-bar"
-      class="form-control"
+      class="form-control text-center"
       placeholder="Search for products..."
     />
-  </div>
-  <div class="col-md-4">
-    <select id="filter-category" class="form-select">
-      <option value="">Filter by Category</option>
-      {% for parent_category in category_tree.get(0, []) %}
-      <optgroup label="{{ parent_category.category_name }}">
-        <option value="{{ parent_category.category_id }}">
-          {{ parent_category.category_name }}
-        </option>
-        {% for subcategory in category_tree.get(parent_category.category_id, [])
-        %}
-        <option value="{{ subcategory.category_id }}">
-          => {{ subcategory.category_name }}
-        </option>
-        {% endfor %}
-      </optgroup>
-      {% endfor %}
-    </select>
   </div>
 </div>
 
