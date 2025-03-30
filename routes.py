@@ -196,10 +196,6 @@ def ask_question():
     if not question:
         return jsonify({'error': 'No question provided'}), 400
     
-    # Check if user is logged in
-    if not current_user.is_authenticated:
-        return jsonify({'error': 'Please log in to use the chat feature'}), 401
-    
     try:
         # Detect if this is a generic question about what we sell
         generic_questions = [
