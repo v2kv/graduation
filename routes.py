@@ -63,9 +63,17 @@ def get_all_subcategories(category):
 
 @index_bp.route('/')
 def index():
-    categories = Category.query.all()  # Fetch all categories for filtering
-    # items = Item.query.options(joinedload(Item.images)).all()  # Fetch all items by default
-    #By default it orderd in ascending way;
+    categories = Category.query.all()  # Fetch all categories
+
+    # Structure categories into a dictionary grouped by parent ID
+    category_tree = {}
+    for category in categories:
+        parent_id = category.parent_category_id or 0  # Root categories get parent_id = 0
+        if parent_id not in category_tree:
+            category_tree[parent_id] = []
+        category_tree[parent_id].append(category)
+
+    # Fetch items ordered by name (ascending)
     items = Item.query.options(joinedload(Item.images)).order_by(Item.item_name.asc()).all()
 
     # Fetch counts for badges
@@ -80,7 +88,6 @@ def index():
         wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
         wishlist_count = len(wishlist.items) if wishlist else 0
 
-        # Count the total number of orders excluding delivered or cancelled statuses
         orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
             ~Order.order_status.in_(['delivered', 'cancelled'])
         ).count()
@@ -90,15 +97,13 @@ def index():
     return render_template(
         'index.html',
         items=items,
-        categories=categories,
+        category_tree=category_tree,  # Pass structured categories
         cart_count=cart_count,
         wishlist_count=wishlist_count,
         orders_count=orders_count,
         unread_messages_count=unread_messages_count,
         show_footer=True
-        
     )
-
 
 # Inject counts into the global context to make them available in all templates
 @index_bp.app_context_processor
@@ -136,7 +141,9 @@ def inject_counts():
         'cate':cate
     }
 
-
+def generate_slug(name):
+    """Convert category names into URL-friendly slugs (lowercase, hyphenated)."""
+    return re.sub(r'\W+', '-', name.strip().lower()).strip('-')
 # API to get the counts dynamically
 @index_bp.route('/api/counters')
 @login_required
@@ -157,7 +164,30 @@ def get_counters():
             'unread_messages_count': unread_messages_count
         })
     return None
+@index_bp.route('/category/<category_slug>')
+def filter_by_category(category_slug):
+    """Filter items based on category slug."""
+    category_slug = category_slug.lower()  # Ensure lowercase comparison
+    print(f"Searching for category slug: {category_slug}")  # Debugging
 
+    # ✅ Query all categories and compare slugs
+    selected_category = next(
+        (c for c in Category.query.all() if generate_slug(c.category_name) == category_slug),
+        None
+    )
+
+    if not selected_category:
+        print("Category not found!")  # Debugging
+        return "Category not found", 404
+
+    # ✅ Fetch subcategories
+    all_subcategories = get_all_subcategories(selected_category)
+    category_ids = [selected_category.category_id] + [sub.category_id for sub in all_subcategories]
+
+    # ✅ Fetch items belonging to this category or subcategories
+    items = Item.query.filter(Item.category_id.in_(category_ids)).options(joinedload(Item.images)).all()
+
+    return render_template('category.html', items=items, category=selected_category)
 @index_bp.route('/filter', methods=['POST'])
 def filter_items():
     """Handle the category filtering via AJAX."""
