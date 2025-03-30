@@ -16,6 +16,8 @@ class Config:
     STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY', 'pk_test_51QhcQwGK7HgCufdX8dCTXfvu5nc28q4xxPDMPXvyHwAgOvE46T6Mu0P8PMfM3cFTEDTglBmJyVtDRFZv0PjIO6n000ztEGQoGZ')
     STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_51QhcQwGK7HgCufdXVD0auQv4NGn8qm9TRWXRYlVoPkrvzzoI7WVmE9SYsIMH0zCn6fov7hlyvs0dp8Ra7kv4TC1r00HXsSH5ap')
 
+    OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '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')
+
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True

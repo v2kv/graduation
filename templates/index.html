@@ -3,6 +3,76 @@
   rel="stylesheet"
   href="{{ url_for('static', filename='index_style.css') }}"
 />
+<style>
+  .chat-popup {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 1000;
+}
+.chat-header {
+    padding: 1rem;
+    background: #007bff;
+    color: white;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.chat-body {
+    height: 300px;
+    overflow-y: auto;
+    padding: 1rem;
+}
+.chat-input {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid #ddd;
+}
+.assistant-message {
+    background: #f1f1f1;
+    padding: 0.5rem;
+    border-radius: 5px;
+    margin-bottom: 0.5rem;
+}
+.user-message {
+    background: #e3f2fd;
+    padding: 0.5rem;
+    border-radius: 5px;
+    margin-bottom: 0.5rem;
+    text-align: right;
+}
+.chat-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 999;
+    padding: 1rem 1.5rem;
+    border-radius: 25px;
+    background: #007bff;
+    color: white;
+    border: none;
+}
+.loading-indicator {
+    color: #666;
+    font-style: italic;
+}
+.fa-spinner {
+    margin-right: 8px;
+}
+.error {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+</style>
 {% endblock %} {% block content %}
 <div class="text-center my-5">
   <h1>Welcome to Souq Khana</h1>
@@ -73,7 +143,162 @@
     </div>
   </div>
   {% endfor %}
-</div>
+
+  {% if current_user.is_authenticated %}
+  <button class="chat-button" onclick="toggleChat()">Ask About Products</button>
+  
+  <div id="chatPopup" class="chat-popup">
+      <div class="chat-header">
+          <h5>Product Assistant</h5>
+          <button class="btn btn-sm btn-close" onclick="toggleChat()"></button>
+      </div>
+      <div class="chat-body" id="chatBody">
+          <div class="assistant-message">Hello! Ask me anything about our products.</div>
+      </div>
+      <div class="chat-input">
+          <input type="text" id="userInput" placeholder="Type your question..." class="form-control" onkeypress="if(event.key === 'Enter') sendQuestion()">
+          <button class="btn btn-primary" onclick="sendQuestion()">Send</button>
+      </div>
+  </div>
+{% else %}
+  <button class="chat-button" onclick="showLoginPrompt()">Ask About Products</button>
+  
+  <div id="chatPopup" class="chat-popup">
+      <div class="chat-header">
+          <h5>Product Assistant</h5>
+          <button class="btn btn-sm btn-close" onclick="toggleChat()"></button>
+      </div>
+      <div class="chat-body" id="chatBody">
+          <div class="assistant-message">Please <a href="{{ url_for('auth.login') }}">log in</a> to use our product assistant.</div>
+      </div>
+  </div>
+
+  <script>
+      function showLoginPrompt() {
+          toggleChat();
+      }
+  </script>
+{% endif %}
+
+<script>
+async function sendQuestion() {
+    const input = document.getElementById('userInput');
+    const question = input.value.trim();
+    const chatBody = document.getElementById('chatBody');
+    
+    if (!question) return;
+    
+    // Add user message
+    chatBody.innerHTML += `<div class="user-message">${escapeHtml(question)}</div>`;
+    
+    // Add loading indicator with unique ID
+    const loadingId = `loading-${Date.now()}`;
+    chatBody.innerHTML += `
+        <div id="${loadingId}" class="assistant-message loading-indicator">
+            <i class="fas fa-spinner fa-spin"></i> Finding products...
+        </div>
+    `;
+    
+    // Clear input field
+    input.value = '';
+    chatBody.scrollTop = chatBody.scrollHeight;
+    
+    try {
+        const response = await fetch('/ask', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ question })
+        });
+        
+        // Remove loading indicator
+        const loadingMessage = document.getElementById(loadingId);
+        if (loadingMessage) {
+            loadingMessage.remove();
+        }
+        
+        // Get response data
+        const data = await response.json();
+        
+        if (response.ok && data.answer) {
+            // Ensure we have an actual answer with content
+            if (data.answer.trim() === '') {
+                chatBody.innerHTML += `
+                    <div class="assistant-message">
+                        I'm sorry, I couldn't find that information. Can I help you with something else?
+                    </div>`;
+            } else {
+                // Clean up any potential markdown formatting that may have slipped through
+                let cleanAnswer = data.answer
+                    .replace(/\\boxed\{/g, '')
+                    .replace(/\}/g, '')
+                    .replace(/```/g, '')
+                    .trim();
+                
+                chatBody.innerHTML += `<div class="assistant-message">${cleanAnswer}</div>`;
+            }
+        } else {
+            // Display error message from server
+            const errorMessage = data.error || 'Something went wrong. Please try again.';
+            chatBody.innerHTML += `
+                <div class="assistant-message error">
+                    ${errorMessage}
+                </div>`;
+            
+            // If it's an authentication error, provide login prompt
+            if (response.status === 401) {
+                chatBody.innerHTML += `
+                    <div class="assistant-message">
+                        Please <a href="/login">log in</a> to use the chat feature.
+                    </div>`;
+            }
+        }
+    } catch (error) {
+        // Handle network errors
+        const loadingMessage = document.getElementById(loadingId);
+        if (loadingMessage) {
+            loadingMessage.remove();
+        }
+        
+        console.error("Chat error:", error);
+        
+        chatBody.innerHTML += `
+            <div class="assistant-message error">
+                Connection issue - please check your network and try again.
+            </div>`;
+    }
+    
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+// Function to escape HTML to prevent XSS
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// Handle Enter key in the input field
+document.getElementById('userInput').addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        sendQuestion();
+    }
+});
+
+function toggleChat() {
+    const chatPopup = document.getElementById('chatPopup');
+    chatPopup.style.display = chatPopup.style.display === 'none' || 
+                              chatPopup.style.display === '' ? 'block' : 'none';
+    
+    // Focus the input field when opening chat
+    if (chatPopup.style.display === 'block') {
+        document.getElementById('userInput').focus();
+    }
+}
+</script>
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {

@@ -8,12 +8,14 @@ from db import db, mail
 from models import Admin, User, Item, ShoppingCart, CartItem, Wishlist, WishlistItem, Order, Category, Tag, ItemTag, ProductImage, Address, PaymentMethod, Messages
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from db import reset_auto_increment, allowed_file, upload_image, delete_image # functions I defined in db.py
 from itsdangerous import TimedSerializer as Serializer
 from itsdangerous import SignatureExpired, BadSignature
 from flask_mail import Message
+import requests
 
 
 # Blueprints
@@ -185,6 +187,210 @@ def filter_items():
         }
         for item in items
     ])
+
+@index_bp.route('/ask', methods=['POST'])
+def ask_question():
+    data = request.get_json()
+    question = data.get('question', '')
+    
+    if not question:
+        return jsonify({'error': 'No question provided'}), 400
+    
+    # Check if user is logged in
+    if not current_user.is_authenticated:
+        return jsonify({'error': 'Please log in to use the chat feature'}), 401
+    
+    try:
+        # Detect if this is a generic question about what we sell
+        generic_questions = [
+            'what do you sell', 'what products do you have', 'what can i buy', 
+            'what is available', 'what do you offer', 'show me products',
+            'what items', 'list products', 'what categories'
+        ]
+        is_generic_question = any(gen_q in question.lower() for gen_q in generic_questions)
+        
+        # Get database information based on the question
+        try:
+            # Get all categories regardless of question type for context
+            all_categories = Category.query.all()
+            
+            # Prepare items to search based on question type
+            items = []
+            
+            if is_generic_question:
+                # For generic questions, get a sampling of products across categories
+                # This ensures we have something to show even for broad questions
+                for category in all_categories:
+                    # Get up to 2 items from each category for a good representative sample
+                    category_items = Item.query.filter_by(category_id=category.category_id).limit(2).all()
+                    items.extend(category_items)
+            else:
+                # For specific questions, perform keyword search
+                keywords = [word.strip() for word in question.lower().split() if len(word.strip()) > 2]
+                
+                # Build filters for each keyword
+                item_filters = []
+                for keyword in keywords:
+                    item_filters.append(Item.item_name.ilike(f'%{keyword}%'))
+                    if hasattr(Item, 'item_description'):
+                        item_filters.append(Item.item_description.ilike(f'%{keyword}%'))
+                
+                # Apply filters if we have any
+                if item_filters:
+                    items = Item.query.filter(or_(*item_filters)).all()
+                    
+                    # Log what was found for debugging
+                    current_app.logger.info(f"Search for '{question}' found {len(items)} items")
+                    for item in items[:3]:
+                        current_app.logger.info(f"Match: {item.item_name} (${item.item_price})")
+                
+                # If no items found with keywords, try to find matching categories
+                if not items and keywords:
+                    category_filters = []
+                    for keyword in keywords:
+                        category_filters.append(Category.category_name.ilike(f'%{keyword}%'))
+                    
+                    if category_filters:
+                        matching_categories = Category.query.filter(or_(*category_filters)).all()
+                        
+                        # Get items from matching categories
+                        for category in matching_categories:
+                            category_items = Item.query.filter_by(category_id=category.category_id).limit(5).all()
+                            items.extend(category_items)
+            
+        except Exception as db_error:
+            current_app.logger.error(f"Database error: {str(db_error)}")
+            return jsonify({'error': 'Unable to search products. Please try again.'}), 500
+        
+        # Prepare product information for the AI prompt
+        product_info_text = ""
+        if items:
+            product_details = []
+            for item in items[:8]:  # Limit to 8 items for clarity
+                detail = f"Product: {item.item_name}, Price: ${item.item_price}"
+                if hasattr(item, 'item_description') and item.item_description:
+                    # Add description if available and not empty
+                    description = item.item_description.strip()
+                    if description:
+                        detail += f", Description: {description[:100]}"
+                        if len(description) > 100:
+                            detail += "..."
+                
+                # Add category if available
+                if hasattr(item, 'category') and item.category:
+                    detail += f", Category: {item.category.category_name}"
+                
+                product_details.append(detail)
+            
+            product_info_text = "\n".join(product_details)
+        else:
+            product_info_text = "No specific products found matching the query."
+        
+        # Prepare category information
+        category_info = []
+        
+        # For all questions, include available categories
+        if all_categories:
+            category_names = [cat.category_name for cat in all_categories]
+            category_info.append(f"Available categories: {', '.join(category_names)}")
+        
+        # For generic questions or if no specific products found, add sample items per category
+        if is_generic_question or not items:
+            for category in all_categories:
+                sample_items = Item.query.filter_by(category_id=category.category_id).limit(3).all()
+                if sample_items:
+                    item_names = [item.item_name for item in sample_items]
+                    category_info.append(f"Category '{category.category_name}' includes: {', '.join(item_names)}")
+        
+        category_info_text = "\n".join(category_info) if category_info else "No categories found in the database."
+
+        # Prepare the prompt for the AI
+        prompt = f"""You are a friendly and helpful shopping assistant for the Souq Khana e-commerce platform.
+        
+        IMPORTANT INSTRUCTIONS:
+        - Respond in a conversational, helpful tone like a retail assistant would.
+        - Be brief but engaging - keep responses under 3 sentences when possible.
+        - NEVER use any kind of Markdown formatting in your responses.
+        - Format your response as plain text only.
+        - When mentioning prices, always include the dollar sign ($).
+        - ONLY mention products or categories that are explicitly listed in the information below.
+        - DO NOT make up any products or categories that aren't provided in the information.
+        - If the product information section says "No specific products found", clearly state we don't currently have that item.
+        - Address customers directly using "you" and refer to the store as "we" or "Souq Khana".
+        - For generic questions about what we sell, mention our main categories and highlight some popular products.
+        
+        Here is information about products that might match the customer's query:
+        {product_info_text}
+        
+        Here is information about our product categories:
+        {category_info_text}
+        
+        Customer question: {question}"""
+
+        # API call with timeout and error handling
+        try:
+            response = requests.post(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {current_app.config['OPENROUTER_API_KEY']}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": request.host_url,
+                    "X-Title": "Souq Khana"
+                },
+                json={
+                    "model": "deepseek/deepseek-r1-zero:free",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7,
+                    "max_tokens": 300
+                },
+                timeout=15 
+            )
+            
+            # Check response status
+            response.raise_for_status()
+            
+            # Parse JSON and get the answer
+            response_data = response.json()
+            if 'choices' in response_data and len(response_data['choices']) > 0:
+                answer = response_data['choices'][0]['message']['content']
+                
+                # Clean up answer - remove unwanted formatting
+                answer = answer.replace('\\boxed{', '')
+                answer = answer.replace('}', '')
+                answer = answer.replace('```', '')
+                
+                # Double-check we're not returning empty responses
+                if not answer.strip():
+                    # Generate a basic fallback response using actual database content
+                    fallback = "I'm sorry, I couldn't generate a specific response. "
+                    
+                    if all_categories:
+                        category_names = [cat.category_name for cat in all_categories]
+                        fallback += f"At Souq Khana, we offer products in these categories: {', '.join(category_names)}. "
+                    
+                    if items:
+                        fallback += f"Some of our products include {', '.join([item.item_name for item in items[:5]])}. "
+                        
+                    fallback += "How can I help you find something specific today?"
+                    return jsonify({'answer': fallback}), 200
+                    
+                return jsonify({'answer': answer}), 200
+            else:
+                current_app.logger.error(f"Unexpected API response structure: {response_data}")
+                return jsonify({'error': 'Invalid response from AI service'}), 500
+                
+        except requests.exceptions.Timeout:
+            current_app.logger.error("OpenRouter API timeout")
+            return jsonify({'error': 'The service is taking too long to respond. Please try again later.'}), 504
+            
+        except requests.exceptions.RequestException as e:
+            current_app.logger.error(f"OpenRouter API Error: {str(e)}")
+            return jsonify({'error': 'Our product assistant is currently unavailable. Please try again later.'}), 503
+
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
+
 
 # Admin Routes
 @admin_bp.route('/admin/register/<secret_token>', methods=['GET', 'POST'])
@@ -793,8 +999,8 @@ def user_logout():
 @user_bp.route('/user/dashboard')
 @login_required
 def user_dashboard():
-   
-    return render_template('user/user_dashboard.html', user=current_user, show_footer=True)
+    addresses = Address.query.filter_by(user_id=current_user.user_id).all()
+    return render_template('user/user_dashboard.html', user=current_user, addresses=addresses, show_footer=True)
 
 # Profile Management
 @user_bp.route('/user/profile', methods=['GET', 'POST'])
@@ -818,7 +1024,7 @@ def change_password():
         confirm_password = request.form['confirm_password']
 
         if not check_password_hash(current_user.password_hash, current_password):
-            print('Current password is incorrect.', 'danger')
+            flash('Current password is incorrect.', 'danger')
             return redirect(url_for('user.change_password'))
 
         if new_password != confirm_password:
@@ -845,7 +1051,6 @@ IRAQ_GOVERNORATES = [
 @user_bp.route('/user/address/add', methods=['GET', 'POST'])
 @login_required
 def add_address():
-    addresses = Address.query.filter_by(user_id=current_user.user_id).all()
     if request.method == 'POST':
         address_line = request.form['address_line']
         city = request.form['city']
@@ -895,13 +1100,13 @@ def add_address():
             db.session.add(new_address)
             db.session.commit()
             flash("Address added successfully!", "success")
-            return redirect(url_for('user.add_address'))
+            return redirect(url_for('user.user_dashboard'))
         except Exception as e:
             db.session.rollback()
             flash(f"An error occurred: {str(e)}", "danger")
             return redirect(url_for('user.add_address'))
 
-    return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES,addresses=addresses)
+    return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
 
 # Edit Address
 @user_bp.route('/user/address/<int:address_id>/edit', methods=['GET', 'POST'])
@@ -956,7 +1161,7 @@ def edit_address(address_id):
         try:
             db.session.commit()
             flash("Address updated successfully!", "success")
-            return redirect(url_for('user.add_address'))
+            return redirect(url_for('user.user_dashboard'))
         except Exception as e:
             db.session.rollback()
             flash(f"An error occurred: {str(e)}", "danger")
