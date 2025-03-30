@@ -1018,23 +1018,24 @@ def user_profile():
 @user_bp.route('/user/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
+    # flash('Current password is incorrect.', 'danger')
     if request.method == 'POST':
-        current_password = request.form['current_password']
-        new_password = request.form['new_password']
-        confirm_password = request.form['confirm_password']
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
 
         if not check_password_hash(current_user.password_hash, current_password):
-            flash('Current password is incorrect.', 'danger')
-            return redirect(url_for('user.change_password'))
+            return jsonify({'status': 'error', 'message': 'Current password is incorrect.'}), 400
 
         if new_password != confirm_password:
-            flash('New passwords do not match.', 'danger')
-            return redirect(url_for('user.change_password'))
+            return jsonify({'status': 'error', 'message': 'New passwords do not match.'}), 400
 
         current_user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
         db.session.commit()
+
         flash('Password changed successfully!', 'success')
-        return redirect(url_for('user.user_dashboard'))
+        
+        return jsonify({'status': 'success', 'message': 'Password changed successfully!', 'redirect': url_for('user.user_dashboard')}), 200
 
     return render_template('user/change_password.html')
        
@@ -1372,6 +1373,8 @@ def item_list():
 @item_bp.route('/item/<int:item_id>')
 def item_detail(item_id):
     item = Item.query.options(joinedload(Item.images)).get_or_404(item_id)
+
+    print(f"DEBUG: Item details {item.__dict__}")  # Prints all attributes
     return render_template('item_detail.html', item=item)
 
 # Cart Routes

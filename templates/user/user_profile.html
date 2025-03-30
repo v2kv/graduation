@@ -1,59 +1,61 @@
-<div class="container mt-4">
-  <h2>Edit Profile</h2>
-  <form id="editProfileForm">
-    <div class="form-group">
-      <label for="first_name">First Name</label>
-      <input
-        type="text"
-        name="first_name"
-        id="first_name"
-        class="form-control"
-        value="{{ user.first_name }}"
-      />
-    </div>
-    <div class="form-group">
-      <label for="last_name">Last Name</label>
-      <input
-        type="text"
-        name="last_name"
-        id="last_name"
-        class="form-control"
-        value="{{ user.last_name }}"
-      />
-    </div>
-    <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
-  </form>
-</div>
+<div class="page-content">
+  <div class="container mt-4">
+    <h2>Edit Profile</h2>
+    <form id="editProfileForm" method="POST">
+      <div class="form-group">
+        <label for="first_name">First Name</label>
+        <input
+          type="text"
+          name="first_name"
+          id="first_name"
+          class="form-control"
+          value="{{ user.first_name }}"
+        />
+      </div>
+      <div class="form-group">
+        <label for="last_name">Last Name</label>
+        <input
+          type="text"
+          name="last_name"
+          id="last_name"
+          class="form-control"
+          value="{{ user.last_name }}"
+        />
+      </div>
+      <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
+    </form>
+  </div>
 
-<!-- Add jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-  $(document).ready(function () {
-    $("form").submit(function (e) {
-      e.preventDefault(); // Prevent the default form submission
+  <!-- Add jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      $("form").submit(function (e) {
+        e.preventDefault(); // Prevent the default form submission
 
-      var firstName = $("#first_name").val();
-      var lastName = $("#last_name").val();
+        var firstName = $("#first_name").val();
+        var lastName = $("#last_name").val();
 
-      $.ajax({
-        url: "/user/profile", // Flask route to handle profile updates
-        type: "POST",
-        // contentType: "application/json",
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        },
-        success: function (response) {
-          // alert(response.message); // Show success message
-        },
-        error: function (xhr) {
-          // alert("Error: " + xhr.responseJSON.message); // Show error message
-        },
-        complete: function () {
-          // Optionally, you can reload the page or redirect after the update
-          location.reload();
-        },
+        $.ajax({
+          url: "/user/profile", // Flask route to handle profile updates
+          type: "POST",
+          // contentType: "application/json",
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+          success: function (response) {
+            // alert(response.message); // Show success message
+          },
+          error: function (xhr) {
+            // alert("Error: " + xhr.responseJSON.message); // Show error message
+          },
+          complete: function () {
+            // Optionally, you can reload the page or redirect after the update
+            location.reload();
+          },
+        });
       });
     });
-  });
-</script>
+  </script>
+</div>
