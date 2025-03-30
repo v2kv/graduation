@@ -23,4 +23,4 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USERNAME = 'souqkhana@gmail.com'
     MAIL_PASSWORD = 'hwft gpgv egnk vudj'
-    MAIL_DEFAULT_SENDER = ('SOUQKHANA', 'souqkhana@gmail.com')
+    MAIL_DEFAULT_SENDER = ('SOUQKHANA', 'no-reply@gsouqkhana.com')

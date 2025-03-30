@@ -1,0 +1,64 @@
+{% if payment_methods %}
+<div class="row">
+  {% for payment in payment_methods %}
+  <div class="col-md-4">
+    <div class="card mb-4" style="height: 320px">
+      <!-- Fixed card height -->
+      <div
+        class="card-body d-flex flex-column align-items-center justify-content-center"
+      >
+        {% if payment.issuer|lower == "visa" %}
+        <img
+          src="{{ url_for('static', filename='images/visa.png') }}"
+          alt="Visa Logo"
+          class="mb-3"
+          width="80"
+        />
+        {% elif payment.issuer|lower == "mastercard" %}
+        <img
+          src="{{ url_for('static', filename='images/mastercard.png') }}"
+          alt="MasterCard Logo"
+          class="mb-3"
+          width="80"
+        />
+        {% else %}
+        <span>{{ payment.issuer }}</span>
+        {% endif %}
+        <h5>**** **** **** {{ payment.last_four_digits }}</h5>
+        <p>
+          Expiry: {{ "%02d" | format(payment.expiry_month) }}/{{
+          payment.expiry_year }}
+        </p>
+        {% if payment.is_default %}
+        <p class="text-success">Default Payment Method</p>
+        {% endif %}
+      </div>
+      <div class="card-footer text-center">
+        {% if not payment.is_default %}
+        <form
+          method="POST"
+          action="{{ url_for('user.set_default_payment_method', payment_id=payment.payment_id) }}"
+          class="set-default-form d-inline"
+        >
+          <button type="submit" class="btn btn-primary btn-sm">
+            Set as Default
+          </button>
+        </form>
+        {% endif %}
+        <form
+          method="POST"
+          action="{{ url_for('user.delete_payment_method', payment_id=payment.payment_id) }}"
+          class="delete-payment-form d-inline"
+        >
+          <button type="submit" class="btn btn-danger btn-sm">
+            Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p>No payment methods added yet.</p>
+{% endif %}
