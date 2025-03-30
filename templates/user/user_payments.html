@@ -1,81 +1,134 @@
-<!-- {% extends "layout.html" %}
-
-{% block title %}My Payment Methods{% endblock %}
-
-{% block content %} -->
 <div class="page-content">
   <div class="container mt-4">
     <h1>My Payment Methods</h1>
-    <a
-      href="{{ url_for('user.add_payment_method') }}"
-      class="btn btn-primary mb-4"
-      >Add Payment Method</a
-    >
+    <button id="add-payment-method-btn" class="btn btn-primary mb-4">Add Payment Method</button>
 
-    {% if payment_methods %}
-    <div class="row">
-      {% for payment in payment_methods %}
-      <div class="col-md-4">
-        <div class="card mb-4" style="height: 320px">
-          <!-- Fixed card height -->
-          <div
-            class="card-body d-flex flex-column align-items-center justify-content-center"
-          >
-            {% if payment.issuer|lower == "visa" %}
-            <img
-              src="{{ url_for('static', filename='images/visa.png') }}"
-              alt="Visa Logo"
-              class="mb-3"
-              width="80"
-            />
-            {% elif payment.issuer|lower == "mastercard" %}
-            <img
-              src="{{ url_for('static', filename='images/mastercard.png') }}"
-              alt="MasterCard Logo"
-              class="mb-3"
-              width="80"
-            />
-            {% else %}
-            <span>{{ payment.issuer }}</span>
-            {% endif %}
-            <h5>**** **** **** {{ payment.last_four_digits }}</h5>
-            <p>
-              Expiry: {{ "%02d" | format(payment.expiry_month) }}/{{
-              payment.expiry_year }}
-            </p>
-            {% if payment.is_default %}
-            <p class="text-success">Default Payment Method</p>
-            {% endif %}
-          </div>
-          <div class="card-footer text-center">
-            {% if not payment.is_default %}
-            <form
-              method="POST"
-              action="{{ url_for('user.set_default_payment_method', payment_id=payment.payment_id) }}"
-              class="d-inline"
-            >
-              <button type="submit" class="btn btn-primary btn-sm">
-                Set as Default
-              </button>
-            </form>
-            {% endif %}
-            <form
-              method="POST"
-              action="{{ url_for('user.delete_payment_method', payment_id=payment.payment_id) }}"
-              class="d-inline"
-            >
-              <button type="submit" class="btn btn-danger btn-sm">
-                Delete
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
+    <div id="add-payment-form-container" style="display: none;"></div>
+    
+    <div id="status-message"></div>
+    
+    <div id="payment-methods-list">
+      <!-- Will be populated via AJAX -->
     </div>
-    {% else %}
-    <p>No payment methods added yet.</p>
-    {% endif %}
   </div>
 </div>
-<!-- {% endblock %} -->
+
+<script>
+  $(document).ready(function() {
+    // Load payment methods on page load
+    loadPaymentMethods();
+    
+    // Add payment method button click
+    $("#add-payment-method-btn").click(function() {
+      $.ajax({
+        url: "{{ url_for('user.add_payment_method') }}",
+        type: "GET",
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        success: function(response) {
+          $("#add-payment-form-container").html(response).slideDown();
+          $("#add-payment-method-btn").hide();
+        },
+        error: function() {
+          showMessage("Error loading payment form", "danger");
+        }
+      });
+    });
+    
+    // Function to load payment methods
+    function loadPaymentMethods() {
+      $.ajax({
+        url: "{{ url_for('user.user_payments') }}",
+        type: "GET",
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        success: function(response) {
+          $("#payment-methods-list").html(response);
+          
+          // Attach event handlers to the newly loaded content
+          reattachPaymentMethodHandlers();
+        },
+        error: function() {
+          showMessage("Error loading payment methods", "danger");
+        }
+      });
+    }
+    
+    // Make the reattachPaymentMethodHandlers function globally available
+    window.reattachPaymentMethodHandlers = function() {
+      console.log("Attaching payment method event handlers");
+      
+      // Set default payment method form submission
+      $(".set-default-form").off("submit").on("submit", function(e) {
+        e.preventDefault();
+        const url = $(this).attr("action");
+        console.log("Set default form submitted for URL:", url);
+        
+        $.ajax({
+          url: url,
+          type: "POST",
+          headers: {'X-Requested-With': 'XMLHttpRequest'},
+          success: function(response) {
+            if (response.success) {
+              showMessage(response.message, "success");
+              $("#payment-methods-list").html(response.html);
+              reattachPaymentMethodHandlers(); // Re-attach handlers to new content
+            } else {
+              showMessage(response.message, "danger");
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error("Error setting default payment method:", error);
+            showMessage("Error updating default payment method", "danger");
+          }
+        });
+      });
+      
+      // Delete payment method form submission
+      $(".delete-payment-form").off("submit").on("submit", function(e) {
+        e.preventDefault();
+        if (confirm("Are you sure you want to delete this payment method?")) {
+          const url = $(this).attr("action");
+          console.log("Delete form submitted for URL:", url);
+          
+          $.ajax({
+            url: url,
+            type: "POST",
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+            success: function(response) {
+              if (response.success) {
+                showMessage(response.message, "success");
+                $("#payment-methods-list").html(response.html);
+                reattachPaymentMethodHandlers(); // Re-attach handlers to new content
+              } else {
+                showMessage(response.message, "danger");
+              }
+            },
+            error: function(xhr, status, error) {
+              console.error("Error deleting payment method:", error);
+              showMessage("Error deleting payment method", "danger");
+            }
+          });
+        }
+      });
+      
+      console.log("Payment method event handlers attached successfully");
+    };
+    
+    // Helper function to show status messages
+    function showMessage(message, type) {
+      $("#status-message").html(
+        `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`
+      );
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(function() {
+        $(".alert").alert('close');
+      }, 5000);
+    }
+    
+    // Make showMessage globally available
+    window.showMessage = showMessage;
+  });
+</script>
