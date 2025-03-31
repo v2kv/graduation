@@ -64,7 +64,6 @@ def get_all_subcategories(category):
 @index_bp.route('/')
 def index():
     categories = Category.query.all()  # Fetch all categories
-
     # Structure categories into a dictionary grouped by parent ID
     category_tree = {}
     for category in categories:
@@ -164,6 +163,7 @@ def get_counters():
             'unread_messages_count': unread_messages_count
         })
     return None
+##this to get the category slug and pass it to the filter function
 @index_bp.route('/category/<category_slug>')
 def filter_by_category(category_slug):
     """Filter items based on category slug."""
