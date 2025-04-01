@@ -143,8 +143,7 @@ class CartItem(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), nullable=False)
     item = db.relationship('Item')
     quantity = db.Column(db.Integer, nullable=False)
-    variation_id = db.Column(db.Integer, db.ForeignKey('item_variations.variation_id'))
-
+   
 
     @property
     def total_price(self):
@@ -165,8 +164,7 @@ class WishlistItem(db.Model):
     wishlist = db.relationship('Wishlist', backref=db.backref('items', lazy=True))
     item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), nullable=False)
     item = db.relationship('Item')
-    variation_id = db.Column(db.Integer, db.ForeignKey('item_variations.variation_id'))
-
+ 
 
 # models.py (updated Order class)
 class Order(db.Model):
