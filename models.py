@@ -126,6 +126,7 @@ class ProductImage(db.Model):
     image_url = db.Column(db.String(255), nullable=False) 
     is_main = db.Column(db.Boolean, nullable=False, default=False)
 
+
 class ShoppingCart(db.Model):
     __tablename__ = 'shopping_carts'
     cart_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -143,7 +144,7 @@ class CartItem(db.Model):
     item = db.relationship('Item')
     quantity = db.Column(db.Integer, nullable=False)
     variation_id = db.Column(db.Integer, db.ForeignKey('item_variations.variation_id'))
-    variation = db.relationship('ItemVariation')
+
 
     @property
     def total_price(self):
@@ -165,7 +166,7 @@ class WishlistItem(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), nullable=False)
     item = db.relationship('Item')
     variation_id = db.Column(db.Integer, db.ForeignKey('item_variations.variation_id'))
-    variation = db.relationship('ItemVariation')
+
 
 # models.py (updated Order class)
 class Order(db.Model):

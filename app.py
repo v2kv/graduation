@@ -6,6 +6,7 @@ from db import db, mail
 from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp, wishlist_bp
 from flask_login import LoginManager
 from dotenv import load_dotenv
+
 load_dotenv()  # Load environment variables from .env
 app = Flask(__name__)
 app.config.from_object(Config)
