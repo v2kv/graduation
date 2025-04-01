@@ -113,11 +113,12 @@ class Tag(db.Model):
 
 class ItemTag(db.Model):
     __tablename__ = 'item_tags'
+    
     item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), primary_key=True)
     tag_id = db.Column(db.Integer, db.ForeignKey('tags.tag_id'), primary_key=True)
-    item = db.relationship('Item')  
-    tag = db.relationship('Tag') 
 
+    item = db.relationship('Item', overlaps="tags,items")
+    tag = db.relationship('Tag', overlaps="tags,items")
 class ProductImage(db.Model):
     __tablename__ = 'product_images'
     image_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
