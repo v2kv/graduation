@@ -1,5 +1,9 @@
-{% extends "layout.html" %} {% block title %}Messages{% endblock %} {% block
-content %}
+{% extends "layout.html" %} {% block link %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='messages.css') }}"
+/>
+{% endblock %} {% block title %}Messages{% endblock %} {% block content %}
 <div class="page-content">
   <div class="container my-4">
     <h2 class="mb-4">Messages</h2>

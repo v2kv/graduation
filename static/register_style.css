@@ -2,7 +2,10 @@
     --fall: linear-gradient(to right, #ff416c, #ff4b2b);
     --pink:#e5345b;
 }
-
+.form-control:focus{
+    box-shadow: 0 0 5px var(--pink);
+    border-color: var(--pink);
+}
 .password-paragraph{
     /* background: #befdbe; */
     /* color: white; */
