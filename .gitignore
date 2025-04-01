@@ -5,7 +5,6 @@ draft.txt
 static/uploads
 # this is local folder for testing the front end
 testing
-config.py
 
 mydb.sql
 # command to dump database informaion insertion data only
