@@ -106,17 +106,6 @@ class Item(db.Model):
         lazy=True
     )
 
-
-class ItemVariation(db.Model):
-    __tablename__ = 'item_variations'
-    variation_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), nullable=False)
-    item = db.relationship('Item', backref=db.backref('variations', lazy=True))
-    variation_name = db.Column(db.String(100), nullable=False)
-    variation_value = db.Column(db.String(100), nullable=False)
-    price_modifier = db.Column(db.Numeric(10, 2), default=0.00)
-    quantity = db.Column(db.Integer, nullable=False, default=0)
-
 class Tag(db.Model):
     __tablename__ = 'tags'
     tag_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -207,17 +196,6 @@ class Order(db.Model):
     def __repr__(self):
         return f'<Order {self.order_id} {self.order_status}>'
 
-# class OrderItem(db.Model):
-#     __tablename__ = 'order_items'
-#     order_item_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     order_id = db.Column(db.Integer, db.ForeignKey('orders.order_id'), nullable=False)
-#     order = db.relationship('Order', backref=db.backref('items', lazy=True))
-#     item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), nullable=False)
-#     item = db.relationship('Item')
-#     quantity = db.Column(db.Integer, nullable=False)
-#     variation_id = db.Column(db.Integer, db.ForeignKey('item_variations.variation_id'))
-#     variation = db.relationship('ItemVariation')
-#     price = db.Column(db.Numeric(10, 2), nullable=False)
 
 class Messages(db.Model):
     __tablename__ = 'messages'
@@ -228,25 +206,4 @@ class Messages(db.Model):
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
 
-class Review(db.Model):
-    __tablename__ = 'reviews'
-    review_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    item_id = db.Column(db.Integer, db.ForeignKey('items.item_id'), nullable=False)
-    item = db.relationship('Item', backref=db.backref('reviews', lazy=True))
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    user = db.relationship('User', backref=db.backref('reviews', lazy=True))
-    rating = db.Column(db.Integer, nullable=False)
-    comment = db.Column(db.Text)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
-    updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
-
-class Discount(db.Model):
-    __tablename__ = 'discounts'
-    discount_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    discount_code = db.Column(db.String(50), unique=True, nullable=False)
-    discount_type = db.Column(db.String(20), nullable=False)
-    discount_value = db.Column(db.Numeric(10, 2), nullable=False)
-    start_date = db.Column(db.TIMESTAMP, nullable=False)
-    end_date = db.Column(db.TIMESTAMP, nullable=False)
-    is_active = db.Column(db.Boolean, nullable=False, default=True)
 
