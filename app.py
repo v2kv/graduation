@@ -6,6 +6,9 @@ from db import db, mail
 from routes import index_bp, admin_bp, user_bp, item_bp, cart_bp, order_bp, wishlist_bp
 from flask_login import LoginManager
 from dotenv import load_dotenv
+from flask import g
+from flask_login import current_user
+from models import ShoppingCart
 
 load_dotenv()  # Load environment variables from .env
 app = Flask(__name__)
@@ -43,6 +46,13 @@ app.register_blueprint(cart_bp)
 app.register_blueprint(wishlist_bp)
 app.register_blueprint(order_bp)
 
+@app.context_processor
+def inject_cart():
+    """Make cart available in all templates"""
+    if current_user.is_authenticated:
+        cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+        return {'cart': cart}  # Inject `cart` into all templates
+    return {'cart': None}  # No cart if not logged in
 @app.context_processor
 def inject_current_app():
     return dict(current_app=current_app)

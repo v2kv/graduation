@@ -47,6 +47,27 @@ def index():
         show_footer=True
     )
 
+# API to get the counts dynamically
+@index_bp.route('/api/counters')
+@login_required
+def get_counters():
+    if current_user.is_authenticated and current_user.role != "admin":
+        cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+        wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+        no_of_users=db.session.query(User).count()
+        unread_messages_count = Messages.query.filter_by(user_id=current_user.user_id, is_read=False).count()
+        orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
+            ~Order.order_status.in_(['delivered', 'cancelled'])
+        ).count()
+
+        return jsonify({
+            'cart_count': sum(item.quantity for item in cart.items) if cart else 0,
+            'wishlist_count': len(wishlist.items) if wishlist else 0,
+            'orders_count': orders_count,
+            'unread_messages_count': unread_messages_count
+        })
+    return None
+
 # Inject counts into the global context to make them available in all templates
 @index_bp.app_context_processor
 def inject_counts():
@@ -83,26 +104,6 @@ def inject_counts():
         'cate':cate
     }
 
-# API to get the counts dynamically
-@index_bp.route('/api/counters')
-@login_required
-def get_counters():
-    if current_user.is_authenticated and current_user.role != "admin":
-        cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
-        wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
-        no_of_users=session.query(User.user_id).count();
-        unread_messages_count = Messages.query.filter_by(user_id=current_user.user_id, is_read=False).count()
-        orders_count = Order.query.filter_by(user_id=current_user.user_id).filter(
-            ~Order.order_status.in_(['delivered', 'cancelled'])
-        ).count()
-
-        return jsonify({
-            'cart_count': sum(item.quantity for item in cart.items) if cart else 0,
-            'wishlist_count': len(wishlist.items) if wishlist else 0,
-            'orders_count': orders_count,
-            'unread_messages_count': unread_messages_count
-        })
-    return None
 
 @index_bp.route('/category/<category_slug>')
 def filter_by_category(category_slug):

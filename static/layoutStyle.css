@@ -236,7 +236,7 @@ footer p{
     margin-right: 8px;
   }
   .error {
-    color: #dc3545;
+    /* color: #dc3545; */
     background-color: #f8d7da;
     border-color: #f5c6cb;
   }

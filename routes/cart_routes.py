@@ -41,19 +41,27 @@ def update_cart_item(cart_item_id):
         data = request.get_json()
         action = data.get('action')
 
+        if not action:
+            return jsonify({'error': 'Invalid request, no action provided'}), 400
+
         if action == 'increase':
             cart_item.quantity += 1
-        elif action == 'decrease' and cart_item.quantity > 1:
-            cart_item.quantity -= 1
+        elif action == 'decrease':
+            if cart_item.quantity > 1:
+                cart_item.quantity -= 1
+            else:
+                return jsonify({'error': 'Cannot decrease quantity below 1'}), 400
         else:
             return jsonify({'error': 'Invalid action'}), 400
 
         db.session.commit()
+
         return jsonify({
             'message': 'Cart updated successfully',
             'quantity': cart_item.quantity,
-            'total_price': float(cart_item.total_price)
+            'total_price': float(cart_item.quantity * cart_item.item.item_price)
         })
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
