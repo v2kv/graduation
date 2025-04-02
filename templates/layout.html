@@ -244,15 +244,18 @@
               >
             </div>
 
-            <form
+            <!-- <form
               action="{{ url_for('cart.remove_from_cart', cart_item_id=item.cart_item_id) }}"
               method="POST"
               class="mt-2"
+            > -->
+            <button
+              class="remove-from-cart btn-nonestyle"
+              data-cart-item-id="{{ item.cart_item_id }}"
             >
-              <button type="submit" class="btn-nonestyle">
-                <i class="fa-solid fa-trash cart-remove"></i>
-              </button>
-            </form>
+              <i class="fa-solid fa-trash cart-remove"></i>
+            </button>
+            <!-- </form> -->
           </div>
         </div>
         {% endfor %}

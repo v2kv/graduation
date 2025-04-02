@@ -70,16 +70,29 @@ def update_cart_item(cart_item_id):
 @login_required
 def remove_from_cart(cart_item_id):
     cart_item = CartItem.query.get_or_404(cart_item_id)
+
     if cart_item.cart.user_id != current_user.user_id:
-        flash('Unauthorized action.', 'danger')
-        return redirect(url_for('cart.view_cart'))
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
 
     db.session.delete(cart_item)
     db.session.commit()
-    reset_auto_increment(db, 'cart_items', 'cart_item_id')
-    flash('Item removed from cart.', 'success')
-    return redirect(url_for('cart.view_cart'))
 
+    # Get updated cart details
+    cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+    cart_items = [{
+        "cart_item_id": item.cart_item_id,
+        "name": item.item.item_name,
+        "price": item.item.item_price,
+        "quantity": item.quantity,
+        "total_price": item.item.item_price * item.quantity,
+        "image_url": item.item.images[0].image_url if item.item.images else "no_image.png"
+    } for item in cart.items] if cart else []
+
+    return jsonify({
+        'success': True,
+        'cart_count': sum(item["quantity"] for item in cart_items),
+        'cart_items': cart_items
+    })
 @cart_bp.route('/cart/move-to-wishlist/<int:cart_item_id>', methods=['POST'])
 @login_required
 def move_to_wishlist(cart_item_id):
