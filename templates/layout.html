@@ -213,7 +213,7 @@
         <div class="cart-content">
           <div class="cart-box">
             <img
-              src="/static/{{(item.item.images[0].image_url) }}"
+              src="/static/{{ item.item.images[0].image_url }}"
               alt="{{ item.item.item_name }}"
             />
             <div class="cart-details">
@@ -222,7 +222,6 @@
 
               <div class="cart-quantity">
                 <button
-                  id="decrement"
                   data-cart-item-id="{{ item.cart_item_id }}"
                   data-action="decrease"
                   class="update-quantity"
@@ -231,7 +230,6 @@
                 </button>
                 <span class="number quantity">{{ item.quantity }}</span>
                 <button
-                  id="increment"
                   data-cart-item-id="{{ item.cart_item_id }}"
                   data-action="increase"
                   class="update-quantity"
@@ -239,44 +237,36 @@
                   +
                 </button>
               </div>
-              <span class="cart-price carttotal{{ item.cart_item_id }}"
-                >total ${{ item.item.item_price * item.quantity }}</span
-              >
+
+              <span class="cart-price carttotal{{ item.cart_item_id }}">
+                total ${{ item.item.item_price * item.quantity }}
+              </span>
             </div>
 
-            <!-- <form
-              action="{{ url_for('cart.remove_from_cart', cart_item_id=item.cart_item_id) }}"
-              method="POST"
-              class="mt-2"
-            > -->
             <button
               class="remove-from-cart btn-nonestyle"
               data-cart-item-id="{{ item.cart_item_id }}"
             >
               <i class="fa-solid fa-trash cart-remove"></i>
             </button>
-            <!-- </form> -->
           </div>
         </div>
         {% endfor %}
-
         <div class="total">
           <div class="total-title">Total</div>
-          <div class="total-price">$0</div>
+          <div class="total-price">{{ total_price }}</div>
         </div>
         <button class="btn-buy">
           <a href="{{ url_for('order.checkout') }}" class="btn-nonestyle"
             >Buy now</a
           >
         </button>
-
         {% else %}
         <p>Your cart is empty.</p>
         {% endif %}
         <i class="fa-solid fa-close" id="cart-close"></i>
       </div>
     </div>
-
     <div class="container mt-4">
       {% with messages = get_flashed_messages(with_categories=true) %} {% if
       messages %} {% for category, message in messages %}

@@ -7,8 +7,8 @@ cart_bp = Blueprint('cart', __name__)
 @login_required
 def view_cart():
     cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
-    return render_template('cart.html', cart=cart, show_footer=True)
-
+    total_price = sum(item.quantity * item.item.item_price for item in cart.items) if cart else 0
+    return render_template('cart.html', cart=cart, total_price=total_price, show_footer=True)
 @cart_bp.route('/cart/add/<int:item_id>', methods=['POST'])
 @login_required
 def add_to_cart(item_id):
@@ -56,16 +56,22 @@ def update_cart_item(cart_item_id):
 
         db.session.commit()
 
+        # Calculate total price for this cart item
+        total_price = cart_item.quantity * cart_item.item.item_price
+
+        # Calculate cart total
+        cart_total = sum(item.quantity * item.item.item_price for item in cart_item.cart.items)
+
         return jsonify({
             'message': 'Cart updated successfully',
             'quantity': cart_item.quantity,
-            'total_price': float(cart_item.quantity * cart_item.item.item_price)
+            'total_price': total_price,
+            'cart_total': cart_total
         })
 
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
 @cart_bp.route('/cart/remove/<int:cart_item_id>', methods=['POST'])
 @login_required
 def remove_from_cart(cart_item_id):
