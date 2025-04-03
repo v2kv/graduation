@@ -33,13 +33,21 @@ document.addEventListener("DOMContentLoaded", function () {
             throw new Error("Invalid response data");
           }
 
+          // Parse `total_price` and `cart_total` to ensure they are numbers
+          const totalPrice = parseFloat(data.total_price);
+          const cartTotal = parseFloat(data.cart_total);
+
+          if (isNaN(totalPrice) || isNaN(cartTotal)) {
+            throw new Error("Total price or cart total is not a valid number");
+          }
+
           // Update quantity and total price for the specific cart item
           const cartBox = this.closest(".cart-box");
           cartBox.querySelector(".quantity").textContent = data.quantity;
-          cartBox.querySelector(".carttotal" + cartItemId).textContent = `$${data.total_price.toFixed(2)}`;
-          updateCartTotal(data.cart_total);
+          cartBox.querySelector(".carttotal" + cartItemId).textContent = `$${totalPrice.toFixed(2)}`;
+          
           // Update overall cart total
-          document.querySelector(".total-price").textContent = `$${data.cart_total.toFixed(2)}`;
+          updateCartTotal(cartTotal);
         })
         .catch((error) => {
           console.log("Error updating quantity:", error);
@@ -71,11 +79,10 @@ function removeCartItem(cartItemId) {
       // Remove the specific cart item from the DOM
       const cartItemElement = document.querySelector(`[data-cart-item-id="${cartItemId}"]`).closest(".cart-box");
       cartItemElement.remove();
-
-      // Update total price
+      
       updateCartTotal(data.cart_total);
 
-      // If cart is empty, show empty message
+    
       if (data.cart_items.length === 0) {
         document.querySelector(".cart-content").innerHTML = "<p>Your cart is empty.</p>";
       }
@@ -88,17 +95,11 @@ function removeCartItem(cartItemId) {
 
 // Function to update total price
 function updateCartTotal(newTotal) {
-  // Use the new total price passed from the removeCartItem function or calculate it
-  if (newTotal !== undefined) {
-    document.querySelector(".total-price").textContent = `$${newTotal.toFixed(2)}`;
-  } else {
-    // If no new total is provided, recalculate the total based on the cart items
-    let total = 0;
-    document.querySelectorAll('.cart-content .cart-box').forEach(cartBox => {
-      const quantity = parseInt(cartBox.querySelector('.quantity').textContent);
-      const price = parseFloat(cartBox.querySelector('.cart-price').textContent.slice(1)); // Remove $
-      total += quantity * price;
-    });
-    document.querySelector('.total-price').textContent = `$${total.toFixed(2)}`;
+  // Ensure newTotal is a number and format it properly
+  const total = parseFloat(newTotal);
+  if (isNaN(total)) {
+    // console.error("Invalid total price:", newTotal);
+    return;
   }
+  document.querySelector(".total-price").textContent = `$${total.toFixed(2)}`;
 }

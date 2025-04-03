@@ -82,6 +82,7 @@ def remove_from_cart(cart_item_id):
 
     db.session.delete(cart_item)
     db.session.commit()
+    
 
     # Get updated cart details
     cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
@@ -93,11 +94,12 @@ def remove_from_cart(cart_item_id):
         "total_price": item.item.item_price * item.quantity,
         "image_url": item.item.images[0].image_url if item.item.images else "no_image.png"
     } for item in cart.items] if cart else []
-
+    cart_total = sum(item.quantity * item.item.item_price for item in cart_item.cart.items)
     return jsonify({
         'success': True,
         'cart_count': sum(item["quantity"] for item in cart_items),
-        'cart_items': cart_items
+        'cart_items': cart_items,
+        'cart_total': cart_total
     })
 @cart_bp.route('/cart/move-to-wishlist/<int:cart_item_id>', methods=['POST'])
 @login_required
