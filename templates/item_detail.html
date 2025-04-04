@@ -2,7 +2,7 @@
 {% block link %}
 <link
   rel="stylesheet"
-  href="{{ url_for('static', filename='order_table.css') }}"
+  href="{{ url_for('static', filename='item_details.css') }}"
 />
 
 {% endblock %}
@@ -35,32 +35,59 @@
       <div class="item-price">
         Price: <span > ${{ item.item_price }}</span>
       </div>
-      <form
-        action="{{ url_for('cart.add_to_cart', item_id=item.item_id) }}"
-        method="POST"
-      >
-        <button
-          type="submit"
-          class="add-to-cart-btn"
-        >
-          Adds to Cart
-        </button>
-      </form>
-    
-      </form>
+      
+      <button class="add-to-cart-btn add-to-cartt" data-item-id="{{item.item_id}}">
+       Add to Cart
+      </button>
+      <button class="add-to-cart-btns add-to-wishlistt" data-item-id="{{item.item_id}}">
+       Add to wishlist
+      </button>
     </div>
 
 </div>
 </div>
 <script>
- document.addEventListener("DOMContentLoaded", function () {
-    const contentBody = document.querySelector(".contentbody");
-    if (contentBody) {
-        contentBody.style.display = "flex";
-        contentBody.style.justifyContent = "center";
-        contentBody.style.alignItems = "center";
-        contentBody.style.height = "100%"; // Optional: Ensure it takes full height
-    }
+document.addEventListener("DOMContentLoaded", function () {
+  const contentBody = document.querySelector(".contentbody");
+  if (contentBody) {
+    contentBody.style.display = "flex";
+    contentBody.style.justifyContent = "center";
+    contentBody.style.alignItems = "center";
+    contentBody.style.height = "100%"; // Optional: Ensure it takes full height
+  }
+
+  document.querySelectorAll(".add-to-cartt").forEach((button) => {
+    button.addEventListener("click", function () {
+      const itemId = this.dataset.itemId;
+      fetch(`/cart/add/${itemId}`, { method: "POST" })
+        .then(() => updateCounters())
+        .catch(() => alert("Error adding to cart"));
+    });
+  });
+
+  document.querySelectorAll(".add-to-wishlistt").forEach((button) => {
+    button.addEventListener("click", function () {
+      const itemId = this.dataset.itemId;
+      fetch(`/wishlist/add/${itemId}`, { method: "POST" })
+        .then(() => updateCounters())
+        .catch(() => alert("Error adding to wishlist"));
+    });
+  });
 });
+
+// Fetch and update counters dynamically
+function updateCounters() {
+  fetch("/api/counters")
+    .then((response) => response.json())
+    .then((data) => {
+      document.getElementById("cart-badge").textContent = data.cart_count;
+      document.getElementById("wishlist-badge").textContent =
+        data.wishlist_count;
+      document.getElementById("orders-badge").textContent = data.orders_count;
+      document.getElementById("messages-badge").textContent =
+        data.unread_messages_count;
+    })
+    .catch((error) => console.error("Error updating counters:", error));
+}
 </script>
 {% endblock %}

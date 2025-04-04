@@ -84,7 +84,15 @@
     margin: 0;
   }
 }
-
+.add-to-cart-btns {
+  background-color: rgb(90, 192, 255);
+  color: white;
+  padding: 0.5em 1em;
+  border-radius: var(--globradius);
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+}
 /* ***************************** */
 /* END Item_details  */
 /* ***************************** */
