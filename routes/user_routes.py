@@ -289,8 +289,8 @@ def add_address():
             db.session.rollback()
             flash(f"An error occurred: {str(e)}", "danger")
             return redirect(url_for('user.add_address'))
-
-    return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
+    addresses = Address.query.filter_by(user_id=current_user.user_id).all()
+    return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES,addresses=addresses)
 
 # Edit Address
 @user_bp.route('/user/address/<int:address_id>/edit', methods=['GET', 'POST'])

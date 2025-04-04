@@ -49,14 +49,6 @@
       <td>${{ item.item.item_price }}</td>
       <td>${{ item.item.item_price * item.quantity }}</td>
       <td>
-        <!-- <form
-          action="{{ url_for('cart.move_to_wishlist', cart_item_id=item.cart_item_id) }}"
-          method="POST"
-        >
-          <button type="submit" class="btn btn-secondary">
-            ⭐ Add to Wishlist
-          </button>
-        </form> -->
         <form
           action="{{ url_for('cart.remove_from_cart', cart_item_id=item.cart_item_id) }}"
           method="POST"
@@ -76,78 +68,5 @@
 <p>Your cart is empty.</p>
 {% endif %}
 
-<script>
-  // document.addEventListener("DOMContentLoaded", function () {
-  //   document.querySelectorAll(".update-quantity").forEach((button) => {
-  //     button.addEventListener("click", function () {
-  //       const cartItemId = this.dataset.cartItemId;
-  //       const action = this.dataset.action;
-
-  //       fetch(`/cart/update/${cartItemId}`, {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ action }),
-  //       })
-  //         .then((response) => {
-  //           if (!response.ok) {
-  //             return response.json().then((err) => {
-  //               throw err;
-  //             });
-  //           }
-  //           return response.json();
-  //         })
-  //         .then((data) => {
-  //           // Update quantity and total price for the specific cart item
-  //           const cartBox = this.closest(".cart-box");
-  //           cartBox.querySelector(".quantity").textContent = data.quantity;
-  //           cartBox.querySelector(
-  //             ".carttotal" + cartItemId
-  //           ).textContent = `$${data.total_price.toFixed(2)}`;
-
-  //           // Update overall cart total
-  //           document.querySelector(
-  //             ".total-price"
-  //           ).textContent = `$${data.cart_total.toFixed(2)}`;
-  //         })
-  //         .catch((error) => {
-  //           alert(error.error || "Error updating quantity.");
-  //         });
-  //     });
-  //   });
-  // });
-
-  // document.addEventListener("DOMContentLoaded", function () {
-  //   document.querySelectorAll(".update-quantity").forEach((button) => {
-  //     button.addEventListener("click", function () {
-  //       const cartItemId = this.dataset.cartItemId;
-  //       const action = this.dataset.action;
-
-  //       fetch(`/cart/update/${cartItemId}`, {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ action }),
-  //       })
-  //         .then((response) => {
-  //           if (!response.ok) {
-  //             return response.json().then((err) => {
-  //               throw err;
-  //             });
-  //           }
-  //           return response.json();
-  //         })
-  //         .then((data) => {
-  //           // Update quantity and total price
-  //           const row = this.closest("tr");
-  //           row.querySelector(".quantity").textContent = data.quantity;
-  //           row.querySelector(
-  //             "td:nth-child(4)"
-  //           ).textContent = `$${data.total_price.toFixed(2)}`;
-  //         })
-  //         .catch((error) => {
-  //           alert(error.error || "Error updating quantity.");
-  //         });
-  //     });
-  //   });
-  // });
-</script>
+<script></script>
 {% endblock %}

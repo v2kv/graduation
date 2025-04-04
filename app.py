@@ -49,7 +49,7 @@ app.register_blueprint(order_bp)
 @app.context_processor
 def inject_cart():
     """Make cart available in all templates"""
-    if current_user.is_authenticated:
+    if current_user.is_authenticated and current_user.role !='admin':
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
         return {'cart': cart}  # Inject `cart` into all templates
     return {'cart': None}  # No cart if not logged in
