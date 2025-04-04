@@ -230,7 +230,57 @@ def reset_password(token):
         return redirect(url_for('user.user_login'))
     
     return render_template('user/reset_password.html', token=token, show_footer=True)
+from flask import jsonify
 
+@user_bp.route('/user/address/adds', methods=['POST'])
+@login_required
+def adds_address():
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        address_line = request.form['address_line']
+        city = request.form['city']
+        country = "Iraq"
+        phone_number = request.form['phone_number'].strip()
+        governorate = request.form.get('governorate')
+        is_default = 'is_default' in request.form
+
+        # Phone validation
+        if not phone_number.isdigit() or len(phone_number) != 11:
+            return jsonify(success=False, message="Phone number must contain exactly 11 numeric digits.")
+
+        iraq_phone_pattern = r"^07\d{9}$"
+        if not re.match(iraq_phone_pattern, phone_number):
+            return jsonify(success=False, message="Invalid phone number format for Iraq. Use: 07XXXXXXXXX.")
+
+        if not governorate:
+            return jsonify(success=False, message="Governorate is required for Iraq.")
+
+        # Default address logic
+        if not Address.query.filter_by(user_id=current_user.user_id, is_default=True).count():
+            is_default = True
+        if is_default:
+            Address.query.filter_by(user_id=current_user.user_id, is_default=True).update({'is_default': False})
+
+        new_address = Address(
+            user_id=current_user.user_id,
+            address_line=address_line,
+            city=city,
+            governorate=governorate,
+            country=country,
+            phone_number=phone_number,
+            is_default=is_default
+        )
+
+        try:
+            db.session.add(new_address)
+            db.session.commit()
+            return jsonify(success=True, message="Address added successfully!")
+        except Exception as e:
+            db.session.rollback()
+            return jsonify(success=False, message=f"Database error: {str(e)}")
+
+    # Fallback for normal request (optional)
+    flash("Invalid request", "danger")
+    return redirect(url_for('user.add_address'))
 # Add Address
 @user_bp.route('/user/address/add', methods=['GET', 'POST'])
 @login_required

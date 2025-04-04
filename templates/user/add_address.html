@@ -50,7 +50,7 @@ content %}
   </div>
   <div class="container mt-4">
     <h2>Add New Address</h2>
-    <form method="POST">
+    <form id="address-form">
       <div class="form-group">
         <label for="address_line">Address Line</label>
         <input
@@ -121,6 +121,44 @@ content %}
       </div>
       <button type="submit" class="btn btn-primary mt-3">Save Address</button>
     </form>
+
+    <div id="response-message" class="mt-3"></div>
   </div>
+
+  <script>
+    document
+      .getElementById("address-form")
+      .addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const formData = new FormData(form);
+
+        try {
+          const response = await fetch("/user/address/adds", {
+            method: "POST",
+            body: formData,
+            headers: {
+              "X-Requested-With": "XMLHttpRequest", // so Flask knows it's AJAX
+            },
+          });
+
+          const result = await response.json();
+          const messageDiv = document.getElementById("response-message");
+
+          if (result.success) {
+            messageDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+            form.reset(); // Optional: reset form
+          } else {
+            messageDiv.innerHTML = `<div class="alert alert-danger">${result.message}</div>`;
+          }
+        } catch (error) {
+          console.error("AJAX Error:", error);
+          document.getElementById(
+            "response-message"
+          ).innerHTML = `<div class="alert alert-danger">Something went wrong. Please try again.</div>`;
+        }
+      });
+  </script>
+  {% endblock %}
 </div>
-{% endblock %}
