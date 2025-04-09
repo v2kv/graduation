@@ -1,0 +1,16 @@
+[Unit]
+Description=Gunicorn daemon for SOUQKHANA E-commerce
+After=network.target mysql.service
+
+[Service]
+User=souqkhana
+Group=www-data
+WorkingDirectory=/var/www/souqkhana
+Environment="PATH=/var/www/souqkhana/venv/bin"
+Environment="PYTHONPATH=/var/www/souqkhana"
+ExecStart=/var/www/souqkhana/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 --access-logfile /var/log/gunicorn/access.log --error-logfile /var/log/gunicorn/error.log wsgi:application
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

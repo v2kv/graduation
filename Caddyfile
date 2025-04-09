@@ -1,0 +1,26 @@
+souqkhana.com {
+    # Enable HTTPS automatically through Let's Encrypt
+    tls {
+        dns cloudflare {env.CF_API_TOKEN}
+    }
+
+    # Handle requests to static files directory
+    handle /static/* {
+        root * /var/www/souqkhana
+        file_server
+    }
+
+    # Forward all other requests to the Gunicorn server
+    handle {
+        reverse_proxy localhost:8000
+    }
+
+    # Enable logging
+    log {
+        output file /var/log/caddy/souqkhana.log {
+            roll_size 10MB
+            roll_keep 10
+            roll_keep_for 720h
+        }
+    }
+}

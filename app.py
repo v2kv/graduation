@@ -9,62 +9,98 @@ from dotenv import load_dotenv
 from flask import g
 from flask_login import current_user
 from models import ShoppingCart
+import logging
+from logging.handlers import RotatingFileHandler
+import sys
 
 load_dotenv()  # Load environment variables from .env
-app = Flask(__name__)
-app.config.from_object(Config)
 
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+# Create Flask application
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
-# Initialize extensions
-db.init_app(app)
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'user.user_login'
+    # Configure logging
+    if not app.debug and not app.testing:
+        # Create logs directory if it doesn't exist
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        
+        # Configure file handler for app.log
+        file_handler = RotatingFileHandler('logs/souqkhana.log', maxBytes=10240, backupCount=10)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        ))
+        file_handler.setLevel(logging.INFO)
+        
+        # Add handlers to app logger
+        app.logger.addHandler(file_handler)
+        app.logger.setLevel(logging.INFO)
+        app.logger.info('SOUQKHANA startup')
+        
+        # Also log to console
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        ))
+        app.logger.addHandler(console_handler)
 
-mail.init_app(app)
+    # Initialize extensions
+    db.init_app(app)
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'user.user_login'
 
-@login_manager.user_loader
-def load_user(user_id):
-    from flask import session
-    from models import Admin, User
+    mail.init_app(app)
 
-    # Determine user type from the session
-    user_type = session.get('user_type')
-    if user_type == 'admin':
-        return Admin.query.get(int(user_id))
-    elif user_type == 'user':
-        return User.query.get(int(user_id))
-    return None  # If no user is found
+    @login_manager.user_loader
+    def load_user(user_id):
+        from flask import session
+        from models import Admin, User
 
-# Register Blueprints
-app.register_blueprint(index_bp)
-app.register_blueprint(admin_bp)
-app.register_blueprint(user_bp)
-app.register_blueprint(item_bp)
-app.register_blueprint(cart_bp)
-app.register_blueprint(wishlist_bp)
-app.register_blueprint(order_bp)
+        # Determine user type from the session
+        user_type = session.get('user_type')
+        if user_type == 'admin':
+            return Admin.query.get(int(user_id))
+        elif user_type == 'user':
+            return User.query.get(int(user_id))
+        return None  # If no user is found
 
-@app.context_processor
-def inject_cart():
-    """Make cart available in all templates"""
-    if current_user.is_authenticated and current_user.role !='admin':
-        cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
-        return {'cart': cart}  # Inject `cart` into all templates
-    return {'cart': None}  # No cart if not logged in
-@app.context_processor
-def inject_current_app():
-    return dict(current_app=current_app)
+    # Register Blueprints
+    app.register_blueprint(index_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(item_bp)
+    app.register_blueprint(cart_bp)
+    app.register_blueprint(wishlist_bp)
+    app.register_blueprint(order_bp)
 
-# error handlers
-@app.errorhandler(404)
-def page_not_found(error):
-    return render_template('404.html'), 404
+    @app.context_processor
+    def inject_cart():
+        """Make cart available in all templates"""
+        if current_user.is_authenticated and current_user.role != 'admin':
+            cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
+            return {'cart': cart}  # Inject `cart` into all templates
+        return {'cart': None}  # No cart if not logged in
+        
+    @app.context_processor
+    def inject_current_app():
+        return dict(current_app=current_app)
 
-@app.errorhandler(500)
-def internal_server_error(error):
-    return render_template('500.html'), 500
+    # error handlers
+    @app.errorhandler(404)
+    def page_not_found(error):
+        return render_template('404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        return render_template('500.html'), 500
+        
+    return app
+
+# Create application instance for running directly
+app = create_app()
 
 if __name__ == '__main__':
     with app.app_context():
