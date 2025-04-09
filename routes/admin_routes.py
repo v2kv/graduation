@@ -339,12 +339,14 @@ def manage_orders():
 @admin_required
 def update_order_status(order_id):
     order = Order.query.get_or_404(order_id)
-    new_status = request.form.get('status', '').strip().lower()
+    new_status = request.form.get('status', '').strip()
     cancellation_reason = request.form.get('cancellation_reason', '').strip()
 
     try:
-        valid_statuses = ['sent', 'delivered', 'cancelled']
+        valid_statuses = ['pending', 'payment_successful, delivery pending', 'sent', 'delivered', 'cancelled']
         if new_status not in valid_statuses:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'Invalid status'})
             flash('Invalid status', 'danger')
             return redirect(url_for('admin.manage_orders'))
 
@@ -352,6 +354,8 @@ def update_order_status(order_id):
         
         if new_status == 'cancelled':
             if not cancellation_reason:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'Cancellation reason required'})
                 flash('Cancellation reason required', 'danger')
                 return redirect(url_for('admin.manage_orders'))
             order.cancellation_reason = cancellation_reason
@@ -360,10 +364,22 @@ def update_order_status(order_id):
 
         db.session.commit()
         
+        message = Messages(
+            user_id=order.user_id,
+            order_id=order.order_id,
+            content=f"Your order status has been updated to: {new_status.title()}"
+        )
+        db.session.add(message)
+        db.session.commit()
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True})
         flash(f'Status updated to {new_status.title()}', 'success')
 
     except Exception as e:
         db.session.rollback()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Failed to update status'})
         flash('Failed to update status', 'danger')
 
     return redirect(url_for('admin.manage_orders'))
