@@ -27,7 +27,9 @@ button.btn.btn-primary-pink {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px; /* Optional: space between the categories */
+  gap: 20px; /* Space between the categories */
+  margin: 0 auto;
+  width: 100%;
 }
 
 .loginbtn {
@@ -63,6 +65,9 @@ button.btn.btn-primary-pink {
 @media (min-width: 992px) {
   .nav-item {
     border-bottom: none;
+  }
+  .center-category {
+    justify-content: center;
   }
 }
 
@@ -153,6 +158,16 @@ footer p {
 @media (max-width: 768px) {
   span.text-uppercase.fw-lighter.ms-2 {
     display: none;
+  }
+  
+  .center-category {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .center-category .nav-item {
+    width: 45%;
+    text-align: center;
   }
 }
 /* ***************************** */

@@ -11,7 +11,7 @@
 </div>
 
 <div class="row mb-4">
-  <div class="col-md-8">
+  <div class="col-md-6">
     <input
       type="text"
       id="search-bar"
@@ -19,7 +19,7 @@
       placeholder="Search for products..."
     />
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <select id="filter-category" class="form-select">
       <option value="">Filter by Category</option>
       {% for parent_category in category_tree.get(0, []) %}
@@ -34,6 +34,14 @@
         </option>
         {% endfor %}
       </optgroup>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <select id="filter-tag" class="form-select">
+      <option value="">Filter by Tag</option>
+      {% for tag in tags %}
+      <option value="{{ tag.tag_id }}">{{ tag.tag_name }}</option>
       {% endfor %}
     </select>
   </div>
@@ -107,7 +115,6 @@
     <button class="btn btn-primary" onclick="sendQuestion()">Send</button>
   </div>
 </div>
-<script src="{{ url_for('static', filename='/js/layout.js') }}"></script>
 
 <script>
   function showLoginPrompt() {
@@ -234,13 +241,16 @@
   document.addEventListener("DOMContentLoaded", function () {
     const searchBar = document.getElementById("search-bar");
     const filterCategory = document.getElementById("filter-category");
+    const filterTag = document.getElementById("filter-tag");
 
     // Attach event listeners
     searchBar.addEventListener("input", searchItems);
     filterCategory.addEventListener("change", filterItems);
+    filterTag.addEventListener("change", filterItems);
 
     function filterItems() {
       const categoryId = filterCategory.value;
+      const tagId = filterTag.value;
 
       // Send AJAX request to filter items
       fetch("/filter", {
@@ -248,18 +258,26 @@
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ category_id: categoryId }),
+        body: JSON.stringify({ 
+          category_id: categoryId,
+          tag_id: tagId 
+        }),
       })
         .then((response) => response.json())
         .then((filteredItems) => {
           const wrapper = document.querySelector(".wrapper");
           wrapper.innerHTML = ""; // Clear current items
 
+          if (filteredItems.length === 0) {
+            wrapper.innerHTML = '<div class="alert alert-info w-100 text-center">No items found matching your criteria.</div>';
+            return;
+          }
+
           // Dynamically render filtered items
           filteredItems.forEach((item) => {
             const card = document.createElement("div");
             card.classList.add("sing-card");
-            card.setAttribute("data-category", item.category_id);
+            card.setAttribute("data-category", item.id);
             card.innerHTML = `
                 <div class="img-area">
                     <img src="${
@@ -282,16 +300,26 @@
                 <div class="info">
                     <h3 class="card-title">${item.name}</h3>
                     <p class="price">$${item.price}</p>
-                    <p class="card-text">${item.description.substring(
-                      0,
-                      100
-                    )}...</p>
+                    <p class="card-text">${
+                      item.description 
+                        ? item.description.substring(0, 100) + '...'
+                        : 'No description available'
+                    }</p>
                 </div>`;
             wrapper.appendChild(card);
           });
 
+          // Reattach event listeners to the new elements
+          setupAddToCartButtons();
+          setupAddToWishlistButtons();
+
           // Reapply search functionality to dynamically updated items
           searchItems();
+        })
+        .catch(error => {
+          console.error('Error filtering items:', error);
+          const wrapper = document.querySelector(".wrapper");
+          wrapper.innerHTML = '<div class="alert alert-danger w-100 text-center">Error loading items. Please try again.</div>';
         });
     }
 
@@ -310,39 +338,45 @@
       });
     }
 
-    document.querySelectorAll(".add-to-cart").forEach((button) => {
-      button.addEventListener("click", function () {
-        const itemId = this.dataset.itemId;
-        fetch(`/cart/add/${itemId}`, { method: "POST" })
-          .then(() => updateCounters())
-          .catch(() => alert("Error adding to cart"));
+    function setupAddToWishlistButtons() {
+      document.querySelectorAll(".add-to-wishlist").forEach((button) => {
+        button.addEventListener("click", function (e) {
+          e.preventDefault();
+          const itemId = this.dataset.itemId;
+          const originalText = this.innerHTML;
+          
+          this.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Adding...';
+          this.disabled = true;
+          
+          fetch(`/wishlist/add/${itemId}`, { method: "POST" })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                this.innerHTML = '<i class="fa fa-check"></i> Added!';
+                updateCounters();
+                showNotification("Item added to wishlist!", "success");
+              } else {
+                throw new Error(data.error || "Failed to add to wishlist");
+              }
+            })
+            .catch(error => {
+              console.error("Error:", error);
+              this.innerHTML = '<i class="fa fa-times"></i> Failed';
+              showNotification("Error adding to wishlist", "danger");
+            })
+            .finally(() => {
+              setTimeout(() => {
+                this.innerHTML = originalText;
+                this.disabled = false;
+              }, 1500);
+            });
+        });
       });
-    });
+    }
 
-    document.querySelectorAll(".add-to-wishlist").forEach((button) => {
-      button.addEventListener("click", function () {
-        const itemId = this.dataset.itemId;
-        fetch(`/wishlist/add/${itemId}`, { method: "POST" })
-          .then(() => updateCounters())
-          .catch(() => alert("Error adding to wishlist"));
-      });
-    });
+    // Initialize wishlist buttons
+    setupAddToWishlistButtons();
   });
-
-  // Fetch and update counters dynamically
-  function updateCounters() {
-    fetch("/api/counters")
-      .then((response) => response.json())
-      .then((data) => {
-        document.getElementById("cart-badge").textContent = data.cart_count;
-        document.getElementById("wishlist-badge").textContent =
-          data.wishlist_count;
-        document.getElementById("orders-badge").textContent = data.orders_count;
-        document.getElementById("messages-badge").textContent =
-          data.unread_messages_count;
-      })
-      .catch((error) => console.error("Error updating counters:", error));
-  }
 </script>
 
 {% set show_footer = True %} {% endblock %}

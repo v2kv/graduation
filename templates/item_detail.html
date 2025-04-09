@@ -13,10 +13,8 @@
     <div class="item_img">
       {% if item.images %}
       <img
-      
         src="/static/{{ item.images[0].image_url }}"
         alt="{{ item.item_name }}"
-       
       />
       {% else %}
       <img
@@ -33,8 +31,19 @@
         {{ item.item_description }}
       </p>
       <div class="item-price">
-        Price: <span > ${{ item.item_price }}</span>
+        Price: <span>${{ item.item_price }}</span>
       </div>
+      
+      {% if item.tags %}
+      <div class="item-tags mb-3">
+        <p>Tags:</p>
+        <div class="d-flex flex-wrap gap-2">
+          {% for tag in item.tags %}
+            <a href="{{ url_for('item.item_list', tag_id=tag.tag_id) }}" class="badge bg-secondary text-decoration-none">{{ tag.tag_name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
       
       <button class="add-to-cart-btn add-to-cartt" data-item-id="{{item.item_id}}">
        Add to Cart
@@ -43,9 +52,8 @@
        Add to wishlist
       </button>
     </div>
+  </div>
 
-</div>
-</div>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const contentBody = document.querySelector(".contentbody");
@@ -53,14 +61,27 @@ document.addEventListener("DOMContentLoaded", function () {
     contentBody.style.display = "flex";
     contentBody.style.justifyContent = "center";
     contentBody.style.alignItems = "center";
-    contentBody.style.height = "100%"; // Optional: Ensure it takes full height
+    contentBody.style.height = "100%";
   }
 
   document.querySelectorAll(".add-to-cartt").forEach((button) => {
     button.addEventListener("click", function () {
       const itemId = this.dataset.itemId;
-      fetch(`/cart/add/${itemId}`, { method: "POST" })
-        .then(() => updateCounters())
+      fetch(`/cart/add/${itemId}`, { 
+        method: "POST",
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            updateCounters();
+            showNotification('Item added to cart!', 'success');
+          } else {
+            alert(data.message || "Error adding to cart");
+          }
+        })
         .catch(() => alert("Error adding to cart"));
     });
   });
@@ -68,14 +89,46 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".add-to-wishlistt").forEach((button) => {
     button.addEventListener("click", function () {
       const itemId = this.dataset.itemId;
-      fetch(`/wishlist/add/${itemId}`, { method: "POST" })
-        .then(() => updateCounters())
+      fetch(`/wishlist/add/${itemId}`, { 
+        method: "POST",
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            updateCounters();
+            showNotification('Item added to wishlist!', 'success');
+          } else {
+            alert(data.message || "Error adding to wishlist");
+          }
+        })
         .catch(() => alert("Error adding to wishlist"));
     });
   });
 });
 
-// Fetch and update counters dynamically
+function showNotification(message, type = 'info') {
+  const flashMessages = document.getElementById('flash-messages');
+  if (!flashMessages) return;
+  
+  const alertDiv = document.createElement('div');
+  alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+  alertDiv.setAttribute('role', 'alert');
+  alertDiv.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  `;
+  
+  flashMessages.appendChild(alertDiv);
+  
+  setTimeout(() => {
+      alertDiv.classList.remove('show');
+      setTimeout(() => alertDiv.remove(), 150);
+  }, 3000);
+}
+
 function updateCounters() {
   fetch("/api/counters")
     .then((response) => response.json())
