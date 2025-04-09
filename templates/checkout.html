@@ -3,84 +3,226 @@
 {% block title %}Checkout{% endblock %}
 
 {% block content %}
-<h1>Checkout</h1>
-
-<!-- Order Summary -->
-<h3>Order Summary</h3>
-{% if cart and cart.items %}
-    <ul class="list-group mb-4">
-        {% for item in cart.items %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                {{ item.item.item_name }} (x{{ item.quantity }})
-                <span>${{ item.item.item_price * item.quantity }}</span>
-            </li>
-        {% endfor %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <strong>Total:</strong>
-            <strong>${{ cart.items | sum(attribute='total_price') }}</strong>
-        </li>
-    </ul>
-{% else %}
-    <p>Your cart is empty.</p>
-    <a href="{{ url_for('index.index') }}" class="btn btn-primary">Go Shopping</a>
-{% endif %}
-
-<!-- Shipping Address -->
-<h3>Shipping Address</h3>
-{% if addresses %}
-    <form action="{{ url_for('order.checkout') }}" method="post">
-        <div class="form-group">
-            {% for address in addresses %}
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="address_id" id="address{{ address.address_id }}" value="{{ address.address_id }}" required>
-                    <label class="form-check-label" for="address{{ address.address_id }}">
-                        {{ address.address_line }}, {{ address.city }}, {{ address.country }}
-                    </label>
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Checkout</h3>
                 </div>
-            {% endfor %}
-        </div>
-{% else %}
-    <p>No saved addresses. <a href="{{ url_for('user.add_address') }}">Add one</a>.</p>
-{% endif %}
+                <div class="card-body">
+                    <!-- Shipping Address -->
+                    <h4 class="mb-3">Shipping Address</h4>
+                    {% if addresses %}
+                        <form action="{{ url_for('order.checkout') }}" method="post" id="checkout-form">
+                            <div class="mb-4">
+                                <div class="row">
+                                    {% for address in addresses %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card address-card">
+                                            <div class="card-body">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="address_id" 
+                                                           id="address{{ address.address_id }}" value="{{ address.address_id }}" 
+                                                           {% if loop.first %}checked{% endif %} required>
+                                                    <label class="form-check-label" for="address{{ address.address_id }}">
+                                                        <strong>{{ address.address_line }}</strong><br>
+                                                        {{ address.city }}{% if address.governorate %}, {{ address.governorate }}{% endif %}<br>
+                                                        {{ address.country }}<br>
+                                                        📞 {{ address.phone_number }}
+                                                        {% if address.is_default %}<span class="badge bg-info ms-2">Default</span>{% endif %}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="text-end mt-2">
+                                    <a href="{{ url_for('user.add_address') }}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fa fa-plus"></i> Add New Address
+                                    </a>
+                                </div>
+                            </div>
 
-<!-- Payment Method -->
-<h3>Payment Method</h3>
-{% if payment_methods %}
-    {% for payment in payment_methods %}
-      <div class="form-check">
-        <input class="form-check-input" type="radio" 
-               name="payment_method_id" 
-               id="payment{{ payment.payment_id }}" 
-               value="{{ payment.payment_id }}" required
-               {% if payment.is_default %}checked{% endif %}>
-        <label class="form-check-label" for="payment{{ payment.payment_id }}">
-          {{ payment.issuer }} ending in {{ payment.last_four_digits }}
-          {% if payment.is_default %}(Default){% endif %}
-        </label>
-      </div>
-    {% endfor %}
-    <div class="form-check">
-      <input class="form-check-input" type="radio" 
-             name="payment_method_id" 
-             id="new_payment_method" 
-             value="new">
-      <label class="form-check-label" for="new_payment_method">
-        Use a new payment method
-      </label>
+                            <!-- Payment Method -->
+                            <h4 class="mb-3">Payment Method</h4>
+                            <div class="mb-4">
+                                {% if payment_methods %}
+                                <div class="row mb-3">
+                                    {% for payment in payment_methods %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card payment-card">
+                                            <div class="card-body">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" 
+                                                          name="payment_method_id" 
+                                                          id="payment{{ payment.payment_id }}" 
+                                                          value="{{ payment.payment_id }}" 
+                                                          {% if payment.is_default %}checked{% endif %} required>
+                                                    <label class="form-check-label" for="payment{{ payment.payment_id }}">
+                                                        {% if payment.issuer == 'visa' %}
+                                                            <img src="{{ url_for('static', filename='images/visa.png') }}" 
+                                                                 alt="Visa" class="payment-icon me-2" width="40">
+                                                        {% elif payment.issuer == 'mastercard' %}
+                                                            <img src="{{ url_for('static', filename='images/mastercard.png') }}" 
+                                                                 alt="Mastercard" class="payment-icon me-2" width="40">
+                                                        {% else %}
+                                                            <i class="fa fa-credit-card me-2"></i>
+                                                        {% endif %}
+                                                        <span>•••• {{ payment.last_four_digits }}</span>
+                                                        <span class="text-muted">({{ payment.expiry_month }}/{{ payment.expiry_year }})</span>
+                                                        {% if payment.is_default %}<span class="badge bg-info ms-2">Default</span>{% endif %}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                
+                                <div class="card mb-3 payment-option-card">
+                                    <div class="card-body">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" 
+                                                  name="payment_method_id" 
+                                                  id="new_payment_method" 
+                                                  value="new"
+                                                  {% if not payment_methods %}checked{% endif %}>
+                                            <label class="form-check-label" for="new_payment_method">
+                                                <i class="fa fa-plus-circle me-2"></i> Use a new payment method
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card payment-option-card">
+                                    <div class="card-body">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" 
+                                                  name="payment_method_id" 
+                                                  id="cash_on_delivery" 
+                                                  value="cash_on_delivery">
+                                            <label class="form-check-label" for="cash_on_delivery">
+                                                <i class="fa fa-money-bill-wave me-2"></i> Pay When Delivered (Cash on Delivery)
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <p>No saved addresses. Please add an address to continue.</p>
+                            <a href="{{ url_for('user.add_address') }}" class="btn btn-primary mt-2">Add Address</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">Order Summary</h4>
+                </div>
+                <div class="card-body">
+                    {% if cart and cart.items %}
+                        <ul class="list-group mb-4">
+                            {% for item in cart.items %}
+                                <li class="list-group-item d-flex justify-content-between lh-sm">
+                                    <div>
+                                        <h6 class="my-0">{{ item.item.item_name }}</h6>
+                                        <small class="text-muted">Quantity: {{ item.quantity }}</small>
+                                    </div>
+                                    <span class="text-muted">${{ item.item.item_price * item.quantity }}</span>
+                                </li>
+                            {% endfor %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total (USD)</span>
+                                <strong>${{ cart.items | sum(attribute='total_price') }}</strong>
+                            </li>
+                        </ul>
+                    
+                        {% if addresses %}
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fa fa-lock me-2"></i> Complete Order
+                            </button>
+                        </form>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <p>Your cart is empty.</p>
+                            <a href="{{ url_for('index.index') }}" class="btn btn-primary mt-2">Go Shopping</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
-{% else %}
-    <p>No saved payment methods. You'll need to enter a new payment method.</p>
-{% endif %}
-<div class="form-check">
-  <input class="form-check-input" type="radio" 
-         name="payment_method_id" 
-         id="cash_on_delivery" 
-         value="cash_on_delivery">
-  <label class="form-check-label" for="cash_on_delivery">
-    Pay When Delivered (Cash on Delivery)
-  </label>
 </div>
-<!-- Submit Button -->
-<button type="submit" class="btn btn-success w-100 mt-4">Checkout</button>
-</form>
+
+<style>
+    .address-card, .payment-card, .payment-option-card {
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+    }
+    
+    .address-card:hover, .payment-card:hover, .payment-option-card:hover {
+        border-color: #6c757d;
+    }
+    
+    .form-check-input:checked ~ .form-check-label {
+        font-weight: bold;
+    }
+    
+    .address-card .form-check-input:checked ~ .form-check-label,
+    .payment-card .form-check-input:checked ~ .form-check-label,
+    .payment-option-card .form-check-input:checked ~ .form-check-label {
+        color: #0d6efd;
+    }
+    
+    .address-card .form-check,
+    .payment-card .form-check,
+    .payment-option-card .form-check {
+        margin-bottom: 0;
+    }
+    
+    .payment-icon {
+        max-height: 24px;
+        vertical-align: middle;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addressInputs = document.querySelectorAll('input[name="address_id"]');
+    const paymentInputs = document.querySelectorAll('input[name="payment_method_id"]');
+    
+    function updateCardSelection(inputs) {
+        inputs.forEach(input => {
+            const card = input.closest('.card');
+            if (input.checked) {
+                card.classList.add('border-primary');
+                card.style.borderWidth = '2px';
+            } else {
+                card.classList.remove('border-primary');
+                card.style.borderWidth = '1px';
+            }
+        });
+    }
+    
+    addressInputs.forEach(input => {
+        input.addEventListener('change', () => updateCardSelection(addressInputs));
+    });
+    
+    paymentInputs.forEach(input => {
+        input.addEventListener('change', () => updateCardSelection(paymentInputs));
+    });
+    
+    updateCardSelection(addressInputs);
+    updateCardSelection(paymentInputs);
+});
+</script>
 {% endblock %}
