@@ -64,13 +64,19 @@
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
                                     <div class="modal-body">
-                                        <form action="{{ url_for('admin.update_order_status', order_id=order.order_id) }}" method="POST">
+                                        <form action="{{ url_for('admin.update_order_status', order_id=order.order_id) }}" method="POST" id="statusForm{{order.order_id}}">
                                             <div class="mb-3">
                                                 <label class="form-label">New Status</label>
                                                 <select name="status" class="form-select" 
                                                         id="statusSelect{{order.order_id}}"
                                                         onchange="toggleCancellationReason('{{order.order_id}}')" 
                                                         required>
+                                                    <option value="pending" {% if order.order_status == 'pending' %}selected{% endif %}>
+                                                        Pending
+                                                    </option>
+                                                    <option value="payment_successful, delivery pending" {% if order.order_status == 'payment_successful, delivery pending' %}selected{% endif %}>
+                                                        Payment Successful
+                                                    </option>
                                                     <option value="sent" {% if order.order_status == 'sent' %}selected{% endif %}>
                                                         Sent
                                                     </option>
@@ -87,7 +93,7 @@
                                                 id="cancellationReason{{order.order_id}}">
                                                 <label class="form-label">Cancellation Reason (Required)</label>
                                                 <textarea name="cancellation_reason" class="form-control" 
-                                                        required>{{ order.cancellation_reason or '' }}</textarea>
+                                                        >{{ order.cancellation_reason or '' }}</textarea>
                                             </div>
                                             
                                             <button type="submit" class="btn btn-primary w-100">
@@ -182,9 +188,11 @@
         
         reasonField.classList.toggle('d-none', !isCancelled);
         const textarea = reasonField.querySelector('textarea');
-        textarea.required = isCancelled;
         
-        if (!isCancelled) {
+        if (isCancelled) {
+            textarea.setAttribute('required', 'required');
+        } else {
+            textarea.removeAttribute('required');
             textarea.value = '';
         }
     }
@@ -195,25 +203,58 @@
         
         reasonField.classList.toggle('d-none', !isDeny);
         const textarea = reasonField.querySelector('textarea');
-        textarea.required = isDeny;
         
-        if (!isDeny) {
+        if (isDeny) {
+            textarea.setAttribute('required', 'required');
+        } else {
             textarea.removeAttribute('required');
             textarea.value = '';
         }
     }
     
     document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.modal form').forEach(form => {
-        form.addEventListener('submit', function() {
-            const modal = bootstrap.Modal.getInstance(form.closest('.modal'));
-            modal.hide();
-            
-            setTimeout(() => {
-                window.location.reload(true); 
-            }, 300);
+        document.querySelectorAll('[id^="statusForm"]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const statusSelect = form.querySelector('select[name="status"]');
+                const cancellationReasonTextarea = form.querySelector('textarea[name="cancellation_reason"]');
+                
+                if (statusSelect.value === 'cancelled' && (!cancellationReasonTextarea.value || cancellationReasonTextarea.value.trim() === '')) {
+                    alert('Cancellation reason is required when status is set to cancelled.');
+                    return false;
+                }
+                
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const modalElement = form.closest('.modal');
+                        const modal = bootstrap.Modal.getInstance(modalElement);
+                        modal.hide();
+                        
+                        setTimeout(() => window.location.reload(), 300);
+                    } else {
+                        alert(data.message || 'An error occurred while updating the order.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+            });
+        });
+        
+        document.querySelectorAll('[id^="statusSelect"]').forEach(select => {
+            const orderId = select.id.replace('statusSelect', '');
+            toggleCancellationReason(orderId);
         });
     });
-});
-    </script>
+</script>
 {% endblock %}

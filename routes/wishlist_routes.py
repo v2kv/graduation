@@ -10,25 +10,57 @@ def view_wishlist():
     return render_template('wishlist.html', wishlist=wishlist, show_footer=True)
 
 @wishlist_bp.route('/wishlist/add/<int:item_id>', methods=['POST'])
-@login_required
 def add_to_wishlist(item_id):
-    item = Item.query.get_or_404(item_id)
-    wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
-    if not wishlist:
-        wishlist = Wishlist(user_id=current_user.user_id)
-        db.session.add(wishlist)
-        db.session.commit()
+    # Check if user is logged in
+    if not current_user.is_authenticated:
+        return jsonify({
+            'success': False,
+            'error': 'Please login to add items to your wishlist',
+            'require_login': True
+        }), 401
+    
+    try:
+        item = Item.query.get_or_404(item_id)
+        wishlist = Wishlist.query.filter_by(user_id=current_user.user_id).first()
+        
+        if not wishlist:
+            wishlist = Wishlist(user_id=current_user.user_id)
+            db.session.add(wishlist)
+            db.session.commit()
 
-    wishlist_item = WishlistItem.query.filter_by(wishlist_id=wishlist.wishlist_id, item_id=item_id).first()
-    if wishlist_item:
-        flash('Item is already in your wishlist.', 'warning')
-    else:
+        # Check if the item is already in the wishlist
+        existing_item = WishlistItem.query.filter_by(
+            wishlist_id=wishlist.wishlist_id, 
+            item_id=item_id
+        ).first()
+        
+        if existing_item:
+            return jsonify({
+                'success': True,
+                'message': 'Item already in wishlist',
+                'wishlist_count': len(wishlist.items)
+            })
+        
+        # Add the new item to wishlist
         wishlist_item = WishlistItem(wishlist_id=wishlist.wishlist_id, item_id=item_id)
         db.session.add(wishlist_item)
         db.session.commit()
-        flash('Item added to wishlist!', 'success')
-
-    return redirect(url_for('wishlist.view_wishlist'))
+        
+        # Get updated wishlist count
+        updated_count = WishlistItem.query.filter_by(wishlist_id=wishlist.wishlist_id).count()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Item added to wishlist!',
+            'wishlist_count': updated_count
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @wishlist_bp.route('/wishlist/remove/<int:wishlist_item_id>', methods=['POST'])
 @login_required

@@ -5,20 +5,19 @@ index_bp = Blueprint('index', __name__)
 
 @index_bp.route('/')
 def index():
-    categories = Category.query.all()  # Fetch all categories
+    categories = Category.query.all()
 
-    # Structure categories into a dictionary grouped by parent ID
     category_tree = {}
     for category in categories:
-        parent_id = category.parent_category_id or 0  # Root categories get parent_id = 0
+        parent_id = category.parent_category_id or 0 
         if parent_id not in category_tree:
             category_tree[parent_id] = []
         category_tree[parent_id].append(category)
 
-    # Fetch items ordered by name (ascending)
     items = Item.query.options(joinedload(Item.images)).order_by(Item.item_name.asc()).all()
+    
+    tags = Tag.query.all()
 
-    # Fetch counts for badges
     cart_count = 0
     wishlist_count = 0
     orders_count = 0
@@ -39,12 +38,13 @@ def index():
     return render_template(
         'index.html',
         items=items,
-        category_tree=category_tree,  # Pass structured categories
+        category_tree=category_tree, 
         cart_count=cart_count,
         wishlist_count=wishlist_count,
         orders_count=orders_count,
         unread_messages_count=unread_messages_count,
-        show_footer=True
+        show_footer=True,
+        tags=tags 
     )
 
 # API to get the counts dynamically
@@ -108,17 +108,15 @@ def inject_counts():
 @index_bp.route('/category/<category_slug>')
 def filter_by_category(category_slug):
     """Filter items based on category slug."""
-    category_slug = category_slug.lower()  # Ensure lowercase comparison
-    print(f"Searching for category slug: {category_slug}")  # Debugging
+    category_slug = category_slug.lower() 
 
-    # ✅ Query all categories and compare slugs
     selected_category = next(
         (c for c in Category.query.all() if generate_slug(c.category_name) == category_slug),
         None
     )
 
     if not selected_category:
-        print("Category not found!")  # Debugging
+        print("Category not found!") 
         return "Category not found", 404
 
     # ✅ Fetch subcategories
@@ -132,30 +130,32 @@ def filter_by_category(category_slug):
 
 @index_bp.route('/filter', methods=['POST'])
 def filter_items():
-    """Handle the category filtering via AJAX."""
+    """Handle the category and tag filtering via AJAX."""
     category_id = request.json.get('category_id')
-    if not category_id:
-        # If no category is selected, return all items
-        items = Item.query.options(joinedload(Item.images)).all()
-    else:
+    tag_id = request.json.get('tag_id')
+    
+    query = Item.query.options(joinedload(Item.images))
+    
+    if category_id:
         selected_category = Category.query.get(category_id)
         if selected_category:
-            # Gather all subcategories of the selected category
             all_subcategories = get_all_subcategories(selected_category)
             category_ids = [selected_category.category_id] + [sub.category_id for sub in all_subcategories]
-            # Filter items belonging to the selected category or its subcategories
-            items = Item.query.filter(Item.category_id.in_(category_ids)).options(joinedload(Item.images)).all()
-        else:
-            items = []  # No items if the category is invalid
+            query = query.filter(Item.category_id.in_(category_ids))
+    
+    if tag_id:
+        query = query.join(ItemTag).filter(ItemTag.tag_id == tag_id)
+    
+    items = query.all()
 
-    # Return the filtered items as JSON
     return jsonify([
         {
             'id': item.item_id,
             'name': item.item_name,
             'price': str(item.item_price),
             'description': item.item_description,
-            'image_url': item.images[0].image_url if item.images else None
+            'image_url': item.images[0].image_url if item.images else None,
+            'tags': [{'id': tag.tag_id, 'name': tag.tag_name} for tag in item.tags]
         }
         for item in items
     ])

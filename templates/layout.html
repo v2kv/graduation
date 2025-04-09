@@ -4,9 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}SOUQKHANA{% endblock %}</title>
-    <!-- <link rel="stylesheet" href="../static/layoutStyle.css" />
-    <link rel="stylesheet" href="../static/shoopingcart.css" /> -->
-    <!-- <link rel="stylesheet" href="../static/all.css" /> -->
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -67,17 +64,15 @@
               >
             </button>
           </a>
-          <!-- <a href="{{ url_for('cart.view_cart') }}"> -->
-          <a id="cart-icon">
-            <button type="button" class="btn position-relative">
-              <i class="fa-1x fa fa-shopping-cart" title="cart"></i>
-              <span
-                id="cart-badge"
-                class="position-absolute top-0 start-100 translate-middle badge bg-primary"
-                >{{ cart_count }}</span
-              >
-            </button>
-          </a>
+          <!-- Cart icon button -->
+          <button type="button" id="cart-icon" class="btn position-relative">
+            <i class="fa-1x fa fa-shopping-cart" title="cart"></i>
+            <span
+              id="cart-badge"
+              class="position-absolute top-0 start-100 translate-middle badge bg-primary"
+              >{{ cart_count }}</span
+            >
+          </button>
           <a href="{{ url_for('wishlist.view_wishlist') }}">
             <button type="button" class="btn position-relative">
               <i class="fa-1x fa fa-heart" title="wishlist"></i>
@@ -98,109 +93,108 @@
             class="position-fixed top-0 start-50 translate-middle-x mt-3"
             style="z-index: 1050; max-width: 90%"
           ></div>
-          {% endif %} {% endif %}
-          <button
-            class="navbar-toggler border-0"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navMenu"
-          >
-            <span class="navbar-toggler-icon"></span>
-          </button>
         </div>
+        {% endif %} {% endif %}
+        
+        <!-- Navbar toggler -->
+        <button
+          class="navbar-toggler border-0"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navMenu"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
 
+        <!-- Navbar menu -->
         <div class="collapse navbar-collapse order-lg-1" id="navMenu">
           <ul class="navbar-nav mx-auto text-center">
-            {% if current_user.is_authenticated %} {% if current_user.role ==
-            'admin' %}
-
-            <li class="nav-item px-1 py-1 d-flex flex-column">
-              <a href="{{ url_for('admin.admin_dashboard') }}">
-                <button type="button" class="btn position-relative d-flex">
-                  <i class="fa-solid fa-user fa-2x" title="messages"> </i>
-                  Dashboard
-                </button>
-              </a>
-            </li>
-            <li class="nav-item px-2 py-2">
-              <a
-                class="nav-link text-uppercase text-dark"
-                href="{{ url_for('admin.admin_logout') }}"
-                >Logout</a
-              >
-            </li>
+            {% if current_user.is_authenticated %} 
+              {% if current_user.role == 'admin' %}
+                <li class="nav-item px-1 py-1 d-flex flex-column">
+                  <a href="{{ url_for('admin.admin_dashboard') }}">
+                    <button type="button" class="btn position-relative d-flex">
+                      <i class="fa-solid fa-user fa-2x" title="messages"> </i>
+                      Dashboard
+                    </button>
+                  </a>
+                </li>
+                <li class="nav-item px-2 py-2">
+                  <a
+                    class="nav-link text-uppercase text-dark"
+                    href="{{ url_for('admin.admin_logout') }}"
+                    >Logout</a
+                  >
+                </li>
+              {% else %}
+                <li class="nav-item px-2 py-2">
+                  <a
+                    class="nav-link text-uppercase text-dark"
+                    href="/category/electronics"
+                    >Electronics</a
+                  >
+                </li>
+                <li class="nav-item px-2 py-2">
+                  <a class="nav-link text-uppercase text-dark" href="/category/Home"
+                    >Home & Appliance</a
+                  >
+                </li>
+                <li class="nav-item px-2 py-2">
+                  <a
+                    class="nav-link text-uppercase text-dark"
+                    href="/category/Health"
+                    >Health</a
+                  >
+                </li>
+                <li class="nav-item px-2 py-2">
+                  <a
+                    class="nav-link text-uppercase text-dark"
+                    href="/category/Tools"
+                    >Tools</a
+                  >
+                </li>
+              {% endif %} 
             {% else %}
-
-            <li class="nav-item px-2 py-2">
-              <a
-                class="nav-link text-uppercase text-dark"
-                href="/category/electronics"
-                >Electronics</a
-              >
-            </li>
-            <li class="nav-item px-2 py-2">
-              <a class="nav-link text-uppercase text-dark" href="/category/Home"
-                >Home & Appliance</a
-              >
-            </li>
-            <li class="nav-item px-2 py-2">
-              <a
-                class="nav-link text-uppercase text-dark"
-                href="/category/Health"
-                >Health</a
-              >
-            </li>
-            <li class="nav-item px-2 py-2">
-              <a
-                class="nav-link text-uppercase text-dark"
-                href="/category/Tools"
-                >Tools</a
-              >
-            </li>
-
-            {% endif %} {% else %}
-
-            <li class="nav-item px-2 py-2">
-              <a
-                class="nav-link text-uppercase text-dark"
-                href="/category/electronics"
-                >Electronics</a
-              >
-            </li>
-            <li class="nav-item px-2 py-2">
-              <a class="nav-link text-uppercase text-dark" href="/category/Home"
-                >Home</a
-              >
-            </li>
-            <li class="nav-item px-2 py-2">
-              <a
-                class="nav-link text-uppercase text-dark"
-                href="/category/Health"
-                >Health</a
-              >
-            </li>
-            <li class="nav-item px-2 py-2">
-              <a
-                class="nav-link text-uppercase text-dark"
-                href="/category/Tools"
-                >Tools</a
-              >
-            </li>
-
-            <li class="nav-item px-2 py-2">
-              <a
-                class="nav-link text-uppercase text-dark"
-                href="{{ url_for('user.user_register') }}"
-                >Register</a
-              >
-            </li>
-            <li class="nav-item px-2 py-2">
-              <a
-                class="nav-link text-uppercase text-dark"
-                href="{{ url_for('user.user_login') }}"
-                >Login</a
-              >
-            </li>
+              <li class="nav-item px-2 py-2">
+                <a
+                  class="nav-link text-uppercase text-dark"
+                  href="/category/electronics"
+                  >Electronics</a
+                >
+              </li>
+              <li class="nav-item px-2 py-2">
+                <a class="nav-link text-uppercase text-dark" href="/category/Home"
+                  >Home</a
+                >
+              </li>
+              <li class="nav-item px-2 py-2">
+                <a
+                  class="nav-link text-uppercase text-dark"
+                  href="/category/Health"
+                  >Health</a
+                >
+              </li>
+              <li class="nav-item px-2 py-2">
+                <a
+                  class="nav-link text-uppercase text-dark"
+                  href="/category/Tools"
+                  >Tools</a
+                >
+              </li>
+              <li class="nav-item px-2 py-2">
+                <a
+                  class="nav-link text-uppercase text-dark"
+                  href="{{ url_for('user.user_register') }}"
+                  >Register</a
+                >
+              </li>
+              <li class="nav-item px-2 py-2">
+                <a
+                  class="nav-link text-uppercase text-dark"
+                  href="{{ url_for('user.user_login') }}"
+                  >Login</a
+                >
+              </li>
             {% endif %}
           </ul>
         </div>
@@ -209,61 +203,73 @@
     <div class="container mt-4">
       <div class="cart">
         <h2 class="cart-title">Your cart</h2>
-        {% if cart and cart.items %} {% for item in cart.items %}
         <div class="cart-content">
-          <div class="cart-box">
-            <img
-              src="/static/{{ item.item.images[0].image_url }}"
-              alt="{{ item.item.item_name }}"
-            />
-            <div class="cart-details">
-              <h2 class="cart-product-title">{{ item.item.item_name }}</h2>
-              <span class="cart-price">${{ item.item.item_price }}</span>
+          {% if cart and cart.items %} 
+            {% for item in cart.items %}
+              <div class="cart-box">
+                <img
+                  src="/static/{{ item.item.images[0].image_url }}"
+                  alt="{{ item.item.item_name }}"
+                />
+                <div class="cart-details">
+                  <h2 class="cart-product-title">{{ item.item.item_name }}</h2>
+                  <span class="cart-price">${{ item.item.item_price }}</span>
 
-              <div class="cart-quantity">
+                  <div class="cart-quantity">
+                    <button
+                      data-cart-item-id="{{ item.cart_item_id }}"
+                      data-action="decrease"
+                      class="update-quantity"
+                    >
+                      -
+                    </button>
+                    <span class="number quantity">{{ item.quantity }}</span>
+                    <button
+                      data-cart-item-id="{{ item.cart_item_id }}"
+                      data-action="increase"
+                      class="update-quantity"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <span class="cart-price carttotal{{ item.cart_item_id }}">
+                    total ${{ item.item.item_price * item.quantity }}
+                  </span>
+                </div>
+
                 <button
+                  class="remove-from-cart btn-nonestyle"
                   data-cart-item-id="{{ item.cart_item_id }}"
-                  data-action="decrease"
-                  class="update-quantity"
                 >
-                  -
-                </button>
-                <span class="number quantity">{{ item.quantity }}</span>
-                <button
-                  data-cart-item-id="{{ item.cart_item_id }}"
-                  data-action="increase"
-                  class="update-quantity"
-                >
-                  +
+                  <i class="fa-solid fa-trash cart-remove"></i>
                 </button>
               </div>
-
-              <span class="cart-price carttotal{{ item.cart_item_id }}">
-                total ${{ item.item.item_price * item.quantity }}
-              </span>
-            </div>
-
-            <button
-              class="remove-from-cart btn-nonestyle"
-              data-cart-item-id="{{ item.cart_item_id }}"
-            >
-              <i class="fa-solid fa-trash cart-remove"></i>
-            </button>
-          </div>
+            {% endfor %}
+          {% else %}
+            <p>Your cart is empty.</p>
+          {% endif %}
         </div>
-        {% endfor %}
+        
         <div class="total">
           <div class="total-title">Total</div>
-          <div class="total-price">{{ total_price }}</div>
+          <div class="total-price">
+            {% if cart and cart.items %}
+              ${{ total_price }}
+            {% else %}
+              $0.00
+            {% endif %}
+          </div>
         </div>
-        <button class="btn-buy">
-          <a href="{{ url_for('order.checkout') }}" class="btn-nonestyle"
-            >Buy now</a
-          >
-        </button>
-        {% else %}
-        <p>Your cart is empty.</p>
+        
+        {% if cart and cart.items %}
+          <button class="btn-buy">
+            <a href="{{ url_for('order.checkout') }}" class="btn-nonestyle"
+              >Buy now</a
+            >
+          </button>
         {% endif %}
+        
         <i class="fa-solid fa-close" id="cart-close"></i>
       </div>
     </div>
@@ -285,8 +291,8 @@
       {% endfor %} {% endif %} {% endwith %}
       <div class="contentbody">{% block content %}{% endblock %}</div>
     </div>
-    <script src="{{ url_for('static', filename='/js/layout.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='/js/layout.js') }}"></script>
     {% if show_footer %} {% extends 'footer.html' %} {% endif %}
   </body>
 </html>
