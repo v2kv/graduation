@@ -130,7 +130,7 @@ content %}
       .getElementById("address-form")
       .addEventListener("submit", async function (e) {
         e.preventDefault();
-
+        console.log("Submitting address form..."); // Add at top of the handler
         const form = e.target;
         const formData = new FormData(form);
 

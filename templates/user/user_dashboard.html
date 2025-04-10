@@ -103,9 +103,9 @@ block link %}
         $(".dynamic-page").hide().html(content).fadeIn(200);
 
         // Execute scripts manually
-        scripts.each(function () {
-          $.globalEval(this.innerHTML);
-        });
+        // scripts.each(function () {
+        //   $.globalEval(this.innerHTML);
+        // });
       } catch (error) {
         $(".dynamic-page").html("<p>Error loading content.</p>");
       }

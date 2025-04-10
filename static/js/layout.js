@@ -436,23 +436,6 @@ function setupMobileTouchSupport() {
       });
     });
     
-    // Replace button text with icons for mobile
-    document.querySelectorAll('.add-to-cart').forEach(button => {
-      button.setAttribute('data-original-text', button.innerHTML);
-      button.innerHTML = '🛒';
-      button.classList.add('mobile-cart-icon');
-    });
-    
-    document.querySelectorAll('.add-to-wishlist').forEach(button => {
-      button.setAttribute('data-original-text', button.innerHTML);
-      button.innerHTML = '⭐';
-      button.classList.add('mobile-wishlist-icon');
-    });
-    
-    document.querySelectorAll('.btnn').forEach(link => {
-      link.setAttribute('data-original-text', link.innerHTML);
-      link.innerHTML = '👁️';
-      link.classList.add('mobile-view-icon');
-    });
+   
   }
 }
