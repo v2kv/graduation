@@ -1,18 +1,36 @@
 .wishlist-grid {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(260px, 1fr)
-  ); /* min width 260px */
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* fallback */
   gap: 1rem;
 }
 
+@media (min-width: 576px) {
+  /* Two cards per row on small screens and up */
+  .wishlist-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  /* Three cards per row on medium screens and up */
+  .wishlist-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  /* Four cards per row on large screens and up */
+  .wishlist-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 .wishlist-item {
-  min-width: 260px;
-  min-height: 400px;
   display: flex;
   justify-content: center;
   align-items: stretch;
+  min-width: 160px;
+  min-height: 400px;
 }
 
 .card {
@@ -26,7 +44,7 @@
 .card-img-top,
 .item-image {
   height: 200px;
-  object-fit: cover;
+  object-fit: contain;
   width: 100%;
 }
 
@@ -37,16 +55,7 @@
   justify-content: space-between;
   padding: 1rem;
 }
-.item-image {
-  object-fit: contain;
-}
-/* .withlist {
-    font-size: 20px;
-    color: var(--pink);
-    border: 1px solid var(--pink);
-    padding: 5px;
-    border-radius: 100%;
-  } */
+
 .price {
   color: var(--pink);
 }
