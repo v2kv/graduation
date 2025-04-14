@@ -85,32 +85,56 @@ block link %}
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-  $(document).ready(function () {
-    $(".load-content").click(async function () {
+  $(document).ready(function() {
+    $(".load-content").click(async function() {
       let pageUrl = $(this).data("url");
-
-      $(".dynamic-page").html("<p>Loading...</p>");
-
+      console.log("Loading:", pageUrl);
+      
+      $(".dynamic-page").html(`<div class="text-center p-3"><i class="fa fa-spinner fa-spin fa-2x"></i></div>`);
+  
       try {
-        let response = await fetch(pageUrl);
-        let text = await response.text();
+        const response = await fetch(pageUrl);
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+        
+        let content = "";
+        if(doc.querySelector(".contentbody")) {
+          content = doc.querySelector(".contentbody").innerHTML;
+        } else if(doc.querySelector(".dynamic-page")) {
+          content = doc.querySelector(".dynamic-page").innerHTML;
+        } else if(doc.querySelector(".main-c")) {
+          content = doc.querySelector(".main-c").innerHTML;
+        } else {
+          content = doc.body.innerHTML;
+        }
+  
+        $(".dynamic-page").html(content);
+        
+        const scripts = [];
+        doc.querySelectorAll('script').forEach(script => {
+          if(script.src) {
+            const newScript = document.createElement('script');
+            newScript.src = script.src;
+            document.body.appendChild(newScript);
+          } else {
+            scripts.push(script.innerHTML);
+          }
+        });
 
-        // Create a temporary div to parse HTML
-        let tempDiv = $("<div>").html(text);
-        let content = tempDiv.find(".page-content").html();
-        let scripts = tempDiv.find("script");
-
-        $(".dynamic-page").hide().html(content).fadeIn(200);
-
-        // Execute scripts manually
-        // scripts.each(function () {
-        //   $.globalEval(this.innerHTML);
-        // });
+        setTimeout(() => {
+          scripts.forEach(code => {
+            try { eval(code); } 
+            catch(e) { console.error('Script execution error:', e); }
+          });
+        }, 100);
+  
       } catch (error) {
-        $(".dynamic-page").html("<p>Error loading content.</p>");
+        console.error("Load error:", error);
+        $(".dynamic-page").html(`<div class="alert alert-danger">Error loading content</div>`);
       }
     });
   });
-</script>
+  </script>
 
 {% endblock %}
