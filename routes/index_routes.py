@@ -126,7 +126,7 @@ def filter_by_category(category_slug):
     # ✅ Fetch items belonging to this category or subcategories
     items = Item.query.filter(Item.category_id.in_(category_ids)).options(joinedload(Item.images)).all()
 
-    return render_template('category.html', items=items, category=selected_category)
+    return render_template('category.html', items=items, category=selected_category, show_footer=True)
 
 @index_bp.route('/filter', methods=['POST'])
 def filter_items():

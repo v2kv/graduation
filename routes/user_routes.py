@@ -340,7 +340,7 @@ def add_address():
             flash(f"An error occurred: {str(e)}", "danger")
             return redirect(url_for('user.add_address'))
     addresses = Address.query.filter_by(user_id=current_user.user_id).all()
-    return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES,addresses=addresses)
+    return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES,addresses=addresses,show_footer=True)
 
 # Edit Address
 @user_bp.route('/user/address/<int:address_id>/edit', methods=['GET', 'POST'])
@@ -620,7 +620,7 @@ def delete_payment_method(payment_id):
 @login_required
 def user_messages():
     messages = Messages.query.filter_by(user_id=current_user.user_id).order_by(Messages.created_at.desc()).all()
-    return render_template('user/messages.html', messages=messages)
+    return render_template('user/messages.html', messages=messages,show_footer=True)
 
 @user_bp.route('/user/messages/<int:message_id>/mark-read', methods=['POST'])
 @login_required

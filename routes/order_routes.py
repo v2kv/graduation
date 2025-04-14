@@ -7,13 +7,13 @@ order_bp = Blueprint('order', __name__)
 @login_required
 def view_orders():
     orders = Order.query.filter_by(user_id=current_user.user_id).all()
-    return render_template('order_list.html', orders=orders)
+    return render_template('order_list.html', orders=orders,show_footer=True)
 
 @order_bp.route('/orders/<int:order_id>')
 @login_required
 def order_detail(order_id):
     order = Order.query.get_or_404(order_id)
-    return render_template('order_detail.html', order=order)
+    return render_template('order_detail.html', order=order,show_footer=True)
 
 @order_bp.route('/checkout', methods=['GET', 'POST'])
 @login_required
@@ -44,7 +44,7 @@ def checkout():
 
         return render_template('redirect_to_stripe.html')
 
-    return render_template('checkout.html', cart=cart, addresses=addresses, payment_methods=payment_methods)
+    return render_template('checkout.html', cart=cart, addresses=addresses, payment_methods=payment_methods ,show_footer=True)
 
 def process_cash_on_delivery(address_id):
     address = Address.query.get(address_id)
