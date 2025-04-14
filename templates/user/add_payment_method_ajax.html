@@ -21,7 +21,6 @@
   $(document).ready(function() {
     console.log("Payment form loaded");
     
-    // Load Stripe.js
     if (typeof Stripe === 'undefined') {
       console.log("Loading Stripe.js");
       var script = document.createElement('script');
@@ -36,33 +35,27 @@
       initializeStripeElement();
     }
     
-    // Cancel button handler
     $("#cancel-add-payment").on("click", function() {
       console.log("Cancel button clicked");
       $("#add-payment-form-container").slideUp(function() {
         $(this).empty();
       });
       
-      // Re-enable the add button
       $("#add-payment-method-btn").prop('disabled', false);
     });
     
-    // Initialize Stripe Elements
     function initializeStripeElement() {
       console.log("Initializing Stripe Element");
       
-      // First check if the card element exists
       const cardElement = document.getElementById('card-element');
       if (!cardElement) {
         console.error("Card element not found");
         return;
       }
       
-      // Initialize Stripe
       const stripe = Stripe("pk_test_51QhcQwGK7HgCufdX8dCTXfvu5nc28q4xxPDMPXvyHwAgOvE46T6Mu0P8PMfM3cFTEDTglBmJyVtDRFZv0PjIO6n000ztEGQoGZ");
       const elements = stripe.elements();
       
-      // Custom styling
       const style = {
         base: {
           color: '#32325d',
@@ -79,17 +72,14 @@
         }
       };
       
-      // Create the card element - without postal code
       const card = elements.create('card', {
         style: style,
         hidePostalCode: true
       });
       
-      // Mount the card element
       card.mount('#card-element');
       console.log("Card element mounted");
       
-      // Handle validation errors
       const displayError = document.getElementById('card-errors');
       card.addEventListener('change', function(event) {
         if (event.error) {
@@ -99,7 +89,6 @@
         }
       });
       
-      // Handle form submission
       const form = document.getElementById('payment-form');
       if (form) {
         console.log("Form found, attaching submit handler");
@@ -111,24 +100,20 @@
           const submitButton = form.querySelector('button[type="submit"]');
           submitButton.disabled = true;
           submitButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing...';
-          
-          // Create the payment method
+
           stripe.createPaymentMethod({
             type: 'card',
             card: card
           }).then(function(result) {
             if (result.error) {
-              // Show error and re-enable button
               displayError.textContent = result.error.message;
               submitButton.disabled = false;
               submitButton.textContent = 'Save Payment Method';
             } else {
-              // Send to server
               console.log("Payment method created, sending to server");
-              
-              // CORRECTED URL: Use the actual route path from your Flask routes
+
               $.ajax({
-                url: '/user/payments/add',  // This matches your actual route definition
+                url: '/user/payments/add',  
                 type: 'POST',
                 headers: {
                   'Content-Type': 'application/x-www-form-urlencoded',
@@ -139,18 +124,16 @@
                   console.log("Server response:", data);
                   
                   if (data.success) {
+                    alert(data.message || 'Payment method added successfully!');
                     
-                    // Hide form and re-enable button
                     $("#add-payment-form-container").slideUp(function() {
                       $(this).empty();
                     });
                     
                     $("#add-payment-method-btn").prop('disabled', false);
                     
-                    // Reload to show new payment method
                     location.reload();
                   } else {
-                    // Show error
                     displayError.textContent = data.message || 'Failed to save payment method';
                     submitButton.disabled = false;
                     submitButton.textContent = 'Save Payment Method';

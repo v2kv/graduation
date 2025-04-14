@@ -88,7 +88,7 @@ block link %}
 
 $(document).ready(function() {
   console.log("Dashboard initialized");
-
+  
   $(".load-content").click(function() {
     let pageUrl = $(this).data("url");
     console.log("Loading content from:", pageUrl);
@@ -101,21 +101,21 @@ $(document).ready(function() {
       cache: false,
       success: function(response) {
         console.log("Content loaded successfully");
-
+        
         $(".dynamic-page").html(response);
         
         if (pageUrl.includes("payments") || pageUrl.includes("user_payments")) {
           console.log("Payments page detected");
-
+          
           let paymentMethodsList = $(".dynamic-page").find("#payment-methods-list");
-
+          
           if ($("#add-payment-method-btn").length === 0) {
             console.log("Button not found - adding it");
 
             if (paymentMethodsList.length > 0) {
               paymentMethodsList.before('<button id="add-payment-method-btn" class="btn btn-primary mb-4">Add Payment Method</button>');
               paymentMethodsList.before('<div id="add-payment-form-container" style="display: none;"></div>');
-
+            } else {
               $(".dynamic-page").prepend('<button id="add-payment-method-btn" class="btn btn-primary mb-4">Add Payment Method</button>');
               $(".dynamic-page").prepend('<div id="add-payment-form-container" style="display: none;"></div>');
             }
@@ -123,14 +123,15 @@ $(document).ready(function() {
 
           $("#add-payment-method-btn").off("click").on("click", function() {
             console.log("Add payment button clicked");
+            
 
             $("#add-payment-form-container").html('<div class="text-center p-3"><i class="fa fa-spinner fa-spin"></i> Loading payment form...</div>').show();
-            
 
             $(this).prop('disabled', true);
             
+
             $.ajax({
-              url: "/user/payments/add", 
+              url: "/user/payments/add",  
               type: "GET",
               headers: {'X-Requested-With': 'XMLHttpRequest'},
               success: function(response) {
@@ -154,7 +155,7 @@ $(document).ready(function() {
               }
             });
           });
-
+          
           attachPaymentMethodHandlers();
         }
       },
