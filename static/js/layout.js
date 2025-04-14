@@ -3,11 +3,15 @@ document.addEventListener("DOMContentLoaded", function() {
   const cartIcon = document.querySelector("#cart-icon");
   const cart = document.querySelector(".cart");
   const cartClose = document.querySelector("#cart-close");
-
+  const carcount = document.getElementById('cart-badge');
+  console.log(carcount.textContent);
   // Open cart
   if (cartIcon) {
     cartIcon.addEventListener("click", () => {
       cart.classList.add("active");
+      if(carcount.textContent!='0')
+      showBuyNowIcon();
+      
     });
   }
 
@@ -110,6 +114,7 @@ function removeCartItem(cartItemId) {
     
       if (data.cart_items.length === 0) {
         document.querySelector(".cart-content").innerHTML = "<p>Your cart is empty.</p>";
+        document.getElementById("dnone").style.display = "none";
       }
     } else {
       console.error("Error removing item:", data.error);
@@ -132,10 +137,14 @@ function updateCartTotal(newTotal) {
     }
   }
 }
-
+function showBuyNowIcon() {
+  document.getElementById("dnone").style.display = "block";
+  
+}
 // Set up add to cart buttons on product cards
 function setupAddToCartButtons() {
   document.querySelectorAll(".add-to-cart").forEach((button) => {
+    
     // Store original text for later
     if (!button.getAttribute('data-original-text')) {
       button.setAttribute('data-original-text', button.innerHTML);
@@ -177,7 +186,8 @@ function setupAddToWishlistButtons() {
 function addItemToCart(itemId, buttonElement) {
   // Store original text (might be emoji on mobile)
   const originalText = buttonElement.innerHTML;
-  
+
+  document.getElementById("dnone").style.display = "block";
   // Show loading state on button
   buttonElement.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
   buttonElement.disabled = true;
@@ -347,7 +357,7 @@ function refreshCartContent() {
 // Show notification
 function showNotification(message, type) {
   const notification = document.createElement('div');
-  notification.className = `alert alert-${type} alert-dismissible fade show notification-toast`;
+  notification.className = `alert alert-${type} alert-dismissiblefade show notification-toast`;
   notification.innerHTML = `
     ${message}
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -386,6 +396,9 @@ function updateCounters() {
       }
       if (document.getElementById("messages-badge")) {
         document.getElementById("messages-badge").textContent = data.unread_messages_count;
+      }
+      if (data.cart_count == 0) {
+        document.getElementById("dnone").style.display = "none";
       }
       
       // Update cart if it's open

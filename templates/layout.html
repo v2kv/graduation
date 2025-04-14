@@ -8,7 +8,11 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
-
+    <style>
+      #dnone {
+        display: none;
+      }
+    </style>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='layoutStyle.css') }}"
@@ -95,7 +99,7 @@
           ></div>
         </div>
         {% endif %} {% endif %}
-        
+
         <!-- Navbar toggler -->
         <button
           class="navbar-toggler border-0"
@@ -109,92 +113,91 @@
         <!-- Navbar menu -->
         <div class="collapse navbar-collapse order-lg-1" id="navMenu">
           <ul class="navbar-nav mx-auto text-center">
-            {% if current_user.is_authenticated %} 
-              {% if current_user.role == 'admin' %}
-                <li class="nav-item px-1 py-1 d-flex flex-column">
-                  <a href="{{ url_for('admin.admin_dashboard') }}">
-                    <button type="button" class="btn position-relative d-flex">
-                      <i class="fa-solid fa-user fa-2x" title="messages"> </i>
-                      Dashboard
-                    </button>
-                  </a>
-                </li>
-                <li class="nav-item px-2 py-2">
-                  <a
-                    class="nav-link text-uppercase text-dark"
-                    href="{{ url_for('admin.admin_logout') }}"
-                    >Logout</a
-                  >
-                </li>
-              {% else %}
-                <li class="nav-item px-2 py-2">
-                  <a
-                    class="nav-link text-uppercase text-dark"
-                    href="/category/electronics"
-                    >Electronics</a
-                  >
-                </li>
-                <li class="nav-item px-2 py-2">
-                  <a class="nav-link text-uppercase text-dark" href="/category/Home"
-                    >Home & Appliance</a
-                  >
-                </li>
-                <li class="nav-item px-2 py-2">
-                  <a
-                    class="nav-link text-uppercase text-dark"
-                    href="/category/Health"
-                    >Health</a
-                  >
-                </li>
-                <li class="nav-item px-2 py-2">
-                  <a
-                    class="nav-link text-uppercase text-dark"
-                    href="/category/Tools"
-                    >Tools</a
-                  >
-                </li>
-              {% endif %} 
+            {% if current_user.is_authenticated %} {% if current_user.role ==
+            'admin' %}
+            <li class="nav-item px-1 py-1 d-flex flex-column">
+              <a href="{{ url_for('admin.admin_dashboard') }}">
+                <button type="button" class="btn position-relative d-flex">
+                  <i class="fa-solid fa-user fa-2x" title="messages"> </i>
+                  Dashboard
+                </button>
+              </a>
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('admin.admin_logout') }}"
+                >Logout</a
+              >
+            </li>
             {% else %}
-              <li class="nav-item px-2 py-2">
-                <a
-                  class="nav-link text-uppercase text-dark"
-                  href="/category/electronics"
-                  >Electronics</a
-                >
-              </li>
-              <li class="nav-item px-2 py-2">
-                <a class="nav-link text-uppercase text-dark" href="/category/Home"
-                  >Home</a
-                >
-              </li>
-              <li class="nav-item px-2 py-2">
-                <a
-                  class="nav-link text-uppercase text-dark"
-                  href="/category/Health"
-                  >Health</a
-                >
-              </li>
-              <li class="nav-item px-2 py-2">
-                <a
-                  class="nav-link text-uppercase text-dark"
-                  href="/category/Tools"
-                  >Tools</a
-                >
-              </li>
-              <li class="nav-item px-2 py-2">
-                <a
-                  class="nav-link text-uppercase text-dark"
-                  href="{{ url_for('user.user_register') }}"
-                  >Register</a
-                >
-              </li>
-              <li class="nav-item px-2 py-2">
-                <a
-                  class="nav-link text-uppercase text-dark"
-                  href="{{ url_for('user.user_login') }}"
-                  >Login</a
-                >
-              </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="/category/electronics"
+                >Electronics</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a class="nav-link text-uppercase text-dark" href="/category/Home"
+                >Home & Appliance</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="/category/Health"
+                >Health</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="/category/Tools"
+                >Tools</a
+              >
+            </li>
+            {% endif %} {% else %}
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="/category/electronics"
+                >Electronics</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a class="nav-link text-uppercase text-dark" href="/category/Home"
+                >Home</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="/category/Health"
+                >Health</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="/category/Tools"
+                >Tools</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('user.user_register') }}"
+                >Register</a
+              >
+            </li>
+            <li class="nav-item px-2 py-2">
+              <a
+                class="nav-link text-uppercase text-dark"
+                href="{{ url_for('user.user_login') }}"
+                >Login</a
+              >
+            </li>
             {% endif %}
           </ul>
         </div>
@@ -202,74 +205,74 @@
     </nav>
     <div class="container mt-4">
       <div class="cart">
-        <h2 class="cart-title">Your cart</h2>
+        <h2 class="cart-title" id="cart-layout">Your cart</h2>
         <div class="cart-content">
-          {% if cart and cart.items %} 
-            {% for item in cart.items %}
-              <div class="cart-box">
-                <img
-                  src="/static/{{ item.item.images[0].image_url }}"
-                  alt="{{ item.item.item_name }}"
-                />
-                <div class="cart-details">
-                  <h2 class="cart-product-title">{{ item.item.item_name }}</h2>
-                  <span class="cart-price">${{ item.item.item_price }}</span>
+          {% if cart and cart.items %} {% for item in cart.items %}
+          <div class="cart-box">
+            <img
+              src="/static/{{ item.item.images[0].image_url }}"
+              alt="{{ item.item.item_name }}"
+            />
+            <div class="cart-details">
+              <h2 class="cart-product-title">{{ item.item.item_name }}</h2>
+              <span class="cart-price">${{ item.item.item_price }}</span>
 
-                  <div class="cart-quantity">
-                    <button
-                      data-cart-item-id="{{ item.cart_item_id }}"
-                      data-action="decrease"
-                      class="update-quantity"
-                    >
-                      -
-                    </button>
-                    <span class="number quantity">{{ item.quantity }}</span>
-                    <button
-                      data-cart-item-id="{{ item.cart_item_id }}"
-                      data-action="increase"
-                      class="update-quantity"
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <span class="cart-price carttotal{{ item.cart_item_id }}">
-                    total ${{ item.item.item_price * item.quantity }}
-                  </span>
-                </div>
-
+              <div class="cart-quantity">
                 <button
-                  class="remove-from-cart btn-nonestyle"
                   data-cart-item-id="{{ item.cart_item_id }}"
+                  data-action="decrease"
+                  class="update-quantity"
                 >
-                  <i class="fa-solid fa-trash cart-remove"></i>
+                  -
+                </button>
+                <span class="number quantity">{{ item.quantity }}</span>
+                <button
+                  data-cart-item-id="{{ item.cart_item_id }}"
+                  data-action="increase"
+                  class="update-quantity"
+                >
+                  +
                 </button>
               </div>
-            {% endfor %}
-          {% else %}
-            <p>Your cart is empty.</p>
+
+              <span class="cart-price carttotal{{ item.cart_item_id }}">
+                total ${{ item.item.item_price * item.quantity }}
+              </span>
+            </div>
+
+            <button
+              class="remove-from-cart btn-nonestyle"
+              data-cart-item-id="{{ item.cart_item_id }}"
+            >
+              <i class="fa-solid fa-trash cart-remove"></i>
+            </button>
+          </div>
+          {% endfor %} {% else %}
+          <p>Your cart is empty.</p>
           {% endif %}
         </div>
-        
+
         <div class="total">
           <div class="total-title">Total</div>
           <div class="total-price">
-            {% if cart and cart.items %}
-              ${{ total_price }}
-            {% else %}
-              $0.00
-            {% endif %}
+            {% if cart and cart.items %} ${{ total_price }} {% else %} $0.00 {%
+            endif %}
           </div>
         </div>
-        
-        {% if cart and cart.items %}
-          <button class="btn-buy">
-            <a href="{{ url_for('order.checkout') }}" class="btn-nonestyle"
-              >Buy now</a
-            >
-          </button>
-        {% endif %}
-        
+
+        <!-- {% if cart and cart.items %}
+        <button class="btn-buy">
+          <a href="{{ url_for('order.checkout') }}" class="btn-nonestyle"
+            >Buy now</a
+          >
+        </button>
+        {% endif %} -->
+        <button class="btn-buy dnone" id="dnone">
+          <a href="{{ url_for('order.checkout') }}" class="btn-nonestyle"
+            >Checkout now</a
+          >
+        </button>
+
         <i class="fa-solid fa-close" id="cart-close"></i>
       </div>
     </div>
