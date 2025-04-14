@@ -1,155 +1,174 @@
 <div class="card mb-4">
-    <div class="card-header">
-      <h5>Add Payment Method</h5>
-    </div>
-    <div class="card-body">
-      <form id="payment-form" method="POST">
-        <div class="form-group">
-          <label for="card-element">Card Details</label>
-          <div id="card-element" class="form-control" style="min-height: 40px; padding: 10px;"></div>
-          <div id="card-errors" class="text-danger mt-2" role="alert"></div>
-        </div>
-        <div class="mt-3">
-          <button type="submit" class="btn btn-primary">Save Payment Method</button>
-          <button type="button" id="cancel-add-payment" class="btn btn-secondary ms-2">Cancel</button>
-        </div>
-      </form>
-    </div>
+  <div class="card-header">
+    <h5>Add Payment Method</h5>
   </div>
-  
-  <script>
-    $(document).ready(function() {
-      console.log("Document ready for Stripe initialization");
-      
-      var stripeScript = document.createElement('script');
-      stripeScript.src = 'https://js.stripe.com/v3/';
-      stripeScript.onload = initializeStripe;
-      document.body.appendChild(stripeScript);
-      
-      function initializeStripe() {
-        console.log("Stripe.js loaded successfully");
-        
+  <div class="card-body">
+    <form id="payment-form" method="POST">
+      <div class="form-group mb-3">
+        <label for="card-element">Card Details</label>
+        <div id="card-element" class="form-control" style="min-height: 40px; padding: 10px;"></div>
+        <div id="card-errors" class="text-danger mt-2" role="alert"></div>
+      </div>
+      <div class="mt-3">
+        <button type="submit" class="btn btn-primary">Save Payment Method</button>
+        <button type="button" id="cancel-add-payment" class="btn btn-secondary ms-2">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-        var stripe = Stripe("pk_test_51QhcQwGK7HgCufdX8dCTXfvu5nc28q4xxPDMPXvyHwAgOvE46T6Mu0P8PMfM3cFTEDTglBmJyVtDRFZv0PjIO6n000ztEGQoGZ");
-        var elements = stripe.elements();
+<script>
+  $(document).ready(function() {
+    console.log("Payment form loaded");
+    
+    // Load Stripe.js
+    if (typeof Stripe === 'undefined') {
+      console.log("Loading Stripe.js");
+      var script = document.createElement('script');
+      script.src = 'https://js.stripe.com/v3/';
+      script.onload = function() {
+        console.log("Stripe.js loaded, initializing elements");
+        initializeStripeElement();
+      };
+      document.head.appendChild(script);
+    } else {
+      console.log("Stripe already loaded, initializing elements");
+      initializeStripeElement();
+    }
+    
+    // Cancel button handler
+    $("#cancel-add-payment").on("click", function() {
+      console.log("Cancel button clicked");
+      $("#add-payment-form-container").slideUp(function() {
+        $(this).empty();
+      });
+      
+      // Re-enable the add button
+      $("#add-payment-method-btn").prop('disabled', false);
+    });
+    
+    // Initialize Stripe Elements
+    function initializeStripeElement() {
+      console.log("Initializing Stripe Element");
+      
+      // First check if the card element exists
+      const cardElement = document.getElementById('card-element');
+      if (!cardElement) {
+        console.error("Card element not found");
+        return;
+      }
+      
+      // Initialize Stripe
+      const stripe = Stripe("pk_test_51QhcQwGK7HgCufdX8dCTXfvu5nc28q4xxPDMPXvyHwAgOvE46T6Mu0P8PMfM3cFTEDTglBmJyVtDRFZv0PjIO6n000ztEGQoGZ");
+      const elements = stripe.elements();
+      
+      // Custom styling
+      const style = {
+        base: {
+          color: '#32325d',
+          fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+          fontSmoothing: 'antialiased',
+          fontSize: '16px',
+          '::placeholder': {
+            color: '#aab7c4'
+          }
+        },
+        invalid: {
+          color: '#fa755a',
+          iconColor: '#fa755a'
+        }
+      };
+      
+      // Create the card element - without postal code
+      const card = elements.create('card', {
+        style: style,
+        hidePostalCode: true
+      });
+      
+      // Mount the card element
+      card.mount('#card-element');
+      console.log("Card element mounted");
+      
+      // Handle validation errors
+      const displayError = document.getElementById('card-errors');
+      card.addEventListener('change', function(event) {
+        if (event.error) {
+          displayError.textContent = event.error.message;
+        } else {
+          displayError.textContent = '';
+        }
+      });
+      
+      // Handle form submission
+      const form = document.getElementById('payment-form');
+      if (form) {
+        console.log("Form found, attaching submit handler");
         
-        var style = {
-          base: {
-            color: '#495057',
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '16px',
-            '::placeholder': {
-              color: '#aab7c4',
-            },
-          },
-          invalid: {
-            color: '#dc3545',
-            iconColor: '#dc3545',
-          },
-        };
-        
-        var card = elements.create('card', {
-          style: style,
-          hidePostalCode: true
-        });
-        
-        console.log("Attempting to mount card element");
-        setTimeout(function() {
-          card.mount('#card-element');
-          console.log("Card element mounted");
-        }, 300);
-        
-        var form = document.getElementById('payment-form');
         form.addEventListener('submit', function(event) {
           event.preventDefault();
           console.log("Form submitted");
           
-          var submitBtn = form.querySelector('button[type="submit"]');
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Processing...';
+          const submitButton = form.querySelector('button[type="submit"]');
+          submitButton.disabled = true;
+          submitButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing...';
           
+          // Create the payment method
           stripe.createPaymentMethod({
             type: 'card',
-            card: card,
+            card: card
           }).then(function(result) {
             if (result.error) {
-              var errorElement = document.getElementById('card-errors');
-              errorElement.textContent = result.error.message;
-              console.error("Stripe error:", result.error.message);
-              
-              submitBtn.disabled = false;
-              submitBtn.textContent = 'Save Payment Method';
+              // Show error and re-enable button
+              displayError.textContent = result.error.message;
+              submitButton.disabled = false;
+              submitButton.textContent = 'Save Payment Method';
             } else {
-              console.log("Payment method created:", result.paymentMethod.id);
+              // Send to server
+              console.log("Payment method created, sending to server");
               
-              fetch("{{ url_for('user.add_payment_method') }}", {
-                method: 'POST',
+              // CORRECTED URL: Use the actual route path from your Flask routes
+              $.ajax({
+                url: '/user/payments/add',  // This matches your actual route definition
+                type: 'POST',
                 headers: {
                   'Content-Type': 'application/x-www-form-urlencoded',
                   'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: 'payment_method_id=' + result.paymentMethod.id
-              })
-              .then(function(response) {
-                return response.json();
-              })
-              .then(function(data) {
-                if (data.success) {
-                  console.log("Payment method saved successfully");
-                  $("#status-message").html(
-                    '<div class="alert alert-success alert-dismissible fade show" role="alert">' +
-                    data.message +
-                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                    '</div>'
-                  );
+                data: 'payment_method_id=' + result.paymentMethod.id,
+                success: function(data) {
+                  console.log("Server response:", data);
                   
-                  $("#add-payment-form-container").slideUp().empty();
-                  $("#add-payment-method-btn").show();
-                  
-                  $.ajax({
-                    url: "{{ url_for('user.user_payments') }}",
-                    type: "GET",
-                    headers: {'X-Requested-With': 'XMLHttpRequest'},
-                    success: function(response) {
-                      $("#payment-methods-list").html(response);
-                      
-                      console.log("Reattaching event handlers after adding payment method");
-                      reattachPaymentMethodHandlers();
-                    }
-                  });
-                } else {
-                  console.error("Server error:", data.message);
-                  $("#status-message").html(
-                    '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
-                    'Failed to save payment method. Please try again.' +
-                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                    '</div>'
-                  );
-                  
-                  submitBtn.disabled = false;
-                  submitBtn.textContent = 'Save Payment Method';
+                  if (data.success) {
+                    
+                    // Hide form and re-enable button
+                    $("#add-payment-form-container").slideUp(function() {
+                      $(this).empty();
+                    });
+                    
+                    $("#add-payment-method-btn").prop('disabled', false);
+                    
+                    // Reload to show new payment method
+                    location.reload();
+                  } else {
+                    // Show error
+                    displayError.textContent = data.message || 'Failed to save payment method';
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Save Payment Method';
+                  }
+                },
+                error: function(xhr, status, error) {
+                  console.error("AJAX error:", error);
+                  displayError.textContent = 'Network error. Please try again.';
+                  submitButton.disabled = false;
+                  submitButton.textContent = 'Save Payment Method';
                 }
-              })
-              .catch(function(error) {
-                console.error("Fetch error:", error);
-                $("#status-message").html(
-                  '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
-                  'An error occurred while processing your request. Please try again.' +
-                  '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                  '</div>'
-                );
-                
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Save Payment Method';
               });
             }
           });
         });
+      } else {
+        console.error("Payment form not found");
       }
-      
-      $(document).on('click', '#cancel-add-payment', function() {
-        $("#add-payment-form-container").slideUp().empty();
-        $("#add-payment-method-btn").show();
-      });
-    });
-  </script>
+    }
+  });
+</script>
