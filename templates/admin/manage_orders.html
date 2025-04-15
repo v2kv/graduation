@@ -3,7 +3,10 @@
 {% block content %}
 <div class="container my-4">
     <h2 class="mb-4">Manage Orders</h2>
-    
+    <div class="mb-3">
+        <input type="text" id="orderSearch" class="form-control" placeholder="Search orders by user, status, or ID...">
+        <p class="text-muted p-2">order id Start with #</p>
+    </div>
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead class="table-light">
@@ -179,7 +182,22 @@
         </table>
     </div>
 </div>
+<script>
 
+    document.getElementById("orderSearch").addEventListener("input", function () {
+        const searchValue = this.value.toLowerCase();
+        const rows = document.querySelectorAll("table tbody tr");
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            if (text.includes(searchValue)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    });
+</script>
 <script>
     function toggleCancellationReason(orderId) {
         const select = document.getElementById(`statusSelect${orderId}`);
