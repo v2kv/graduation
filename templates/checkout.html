@@ -43,10 +43,16 @@
                                         <i class="fa fa-plus"></i> Add New Address
                                     </a>
                                 </div>
+                               
                             </div>
 
                             <!-- Payment Method -->
                             <h4 class="mb-3">Payment Method</h4>
+                            <div class="text-end mt-2">
+                                <a href="{{ url_for('user.user_dashboard') }}" class="btn btn-outline-secondary btn-sm w-100 mb-5">
+                                    <i class="fa fa-plus"></i> Add Payment method
+                                </a>
+                            </div>
                             <div class="mb-4">
                                 {% if payment_methods %}
                                 <div class="row mb-3">
