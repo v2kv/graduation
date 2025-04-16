@@ -52,6 +52,7 @@ link %}
         <button
           class="btn btn-dark rounded-pill px-4 mt-2 add-to-carts"
           data-item-id="{{ item.item_id }}"
+          data-wishlist-item-id="{{ item.wishlist_item_id }}"
         >
           add to cart
         </button>
@@ -77,14 +78,36 @@ link %}
     document.querySelectorAll(".add-to-carts").forEach((button) => {
       button.addEventListener("click", function () {
         const itemId = this.dataset.itemId;
+        const wishlistItemId = this.dataset.wishlistItemId; // new data attribute
+
+        // First: Add to cart
         fetch(`/cart/add/${itemId}`, { method: "POST" })
-          .then(() => updateCounters())
-          .catch(() => alert("Error adding to cart"));
+          .then((res) => {
+            if (!res.ok) throw new Error("Failed to add to cart");
+
+            // Second: Remove from wishlist
+            return fetch(`/wishlist/remove/${wishlistItemId}`, {
+              method: "POST",
+              headers: {
+                "X-Requested-With": "XMLHttpRequest",
+              },
+            });
+          })
+          .then((res) => {
+            if (!res.ok) throw new Error("Failed to remove from wishlist");
+
+            // Third: Remove the item from the DOM
+            const itemCard = button.closest(".wishlist-item");
+            itemCard.remove();
+
+            // Update counters
+            updateCounters();
+          })
+          .catch(() => alert("Error adding to cart or removing from wishlist"));
       });
     });
   });
 
-  // Fetch and update counters dynamically
   function updateCounters() {
     fetch("/api/counters")
       .then((response) => response.json())

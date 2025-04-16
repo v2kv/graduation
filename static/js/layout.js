@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const cart = document.querySelector(".cart");
   const cartClose = document.querySelector("#cart-close");
   const carcount = document.getElementById('cart-badge');
-  console.log(carcount.textContent);
+
   // Open cart
   if (cartIcon) {
     cartIcon.addEventListener("click", () => {
