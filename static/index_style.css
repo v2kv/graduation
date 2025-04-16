@@ -14,10 +14,12 @@ body {
 .add-to-wishlist:hover,
 .btnn:hover {
   background-color: var(--pink);
-  color: #fff;
-  border: none;
+  color: #fff !important;
+  text-decoration: none !important;
 }
-
+.nonedeco :hover {
+  background-color: white !important;
+}
 /* New index style */
 /* New index style */
 /* New index style */

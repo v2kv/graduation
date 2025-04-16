@@ -37,6 +37,8 @@
       <p class="card-text text-muted small">
         {{ item.item_description[:100] }}...
       </p>
+      {% if current_user.is_authenticated %} {% if current_user.role != 'admin'
+      %}
       <button
         class="btn rounded-pill px-4 mt-2 add-to-cart"
         data-item-id="{{ item.item_id }}"
@@ -50,6 +52,25 @@
       >
         Add to wishlist
       </button>
+      {% elif current_user.role == 'admin' %}
+      <a
+        class="btn btn-warning rounded-pill px-4 mt-2 w-100"
+        href="admin/items/{{ item.item_id }}/edit"
+      >
+        Edit item
+      </a>
+      {% endif %} {% else %}
+      <a
+        class="btn rounded-pill px-4 mt-2 add-to-cart nonedeco"
+        href="/user/login"
+      >
+        add to cart
+      </a>
+
+      <a class="btn btn-dark rounded-pill px-4 mt-2 w-100" href="/user/login">
+        add to wishlist
+      </a>
+      {% endif %}
     </div>
   </div>
 </div>
