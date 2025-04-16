@@ -124,12 +124,12 @@
     const searchBar = document.getElementById("search-bar");
     const filterCategory = document.getElementById("filter-category");
     const filterTag = document.getElementById("filter-tag");
-
+    
     // Attach event listeners
     searchBar.addEventListener("input", searchItems);
     filterCategory.addEventListener("change", filterItems);
     filterTag.addEventListener("change", filterItems);
-
+    
     function filterItems() {
       const categoryId = filterCategory.value;
       const tagId = filterTag.value;
