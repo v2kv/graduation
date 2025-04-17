@@ -11,8 +11,13 @@ def view_cart():
     return render_template('cart.html', cart=cart, total_price=total_price, show_footer=True)
 
 @cart_bp.route('/cart/add/<int:item_id>', methods=['POST'])
-@login_required
 def add_to_cart(item_id):
+    if not current_user.is_authenticated:
+        return jsonify({
+            'success': False,
+            'error': 'Please login to add items to your cart',
+            'require_login': True
+        }), 401
     try:
         item = Item.query.get_or_404(item_id)
         cart = ShoppingCart.query.filter_by(user_id=current_user.user_id).first()
