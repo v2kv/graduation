@@ -20,6 +20,18 @@ body {
 .nonedeco :hover {
   background-color: white !important;
 }
+
+.cart-style-button {
+    background-color: var(--pink);
+    color: white;
+  }
+  
+  .cart-style-button:hover {
+    background-color: var(--pink);
+    color: #fff !important;
+    text-decoration: none !important;
+    opacity: 0.9;
+  }
 /* New index style */
 /* New index style */
 /* New index style */
