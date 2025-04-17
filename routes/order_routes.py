@@ -125,7 +125,12 @@ def stripe_checkout_session():
                     customer=current_user.stripe_customer_id
                 )
 
-                # Mark the payment method as default
+                # First, unset any existing default payment methods
+                PaymentMethod.query.filter_by(
+                    user_id=current_user.user_id, 
+                    is_default=True
+                ).update({'is_default': False})
+                
                 payment_method.is_default = True
                 db.session.commit()
 
@@ -146,7 +151,6 @@ def stripe_checkout_session():
                 }
             )
 
-            # Redirect on successful payment
             return redirect(url_for('order.stripe_success', payment_intent_id=payment_intent.id))
 
         # For new payment methods, use Checkout Session
