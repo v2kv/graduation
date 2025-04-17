@@ -6,8 +6,9 @@ order_bp = Blueprint('order', __name__)
 @order_bp.route('/orders')
 @login_required
 def view_orders():
-    orders = Order.query.filter_by(user_id=current_user.user_id).all()
-    return render_template('order_list.html', orders=orders,show_footer=True)
+    orders = Order.query.filter_by(user_id=current_user.user_id).order_by(Order.order_date.desc()).all()
+                
+    return render_template('order_list.html', orders=orders, show_footer=True)
 
 @order_bp.route('/orders/<int:order_id>')
 @login_required
