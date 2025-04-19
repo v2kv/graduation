@@ -179,7 +179,6 @@ def ask_question():
         
         # Get database information based on the question
         try:
-            # Get all categories regardless of question type for context
             all_categories = Category.query.all()
             
             # Prepare items to search based on question type
@@ -234,7 +233,7 @@ def ask_question():
         product_info_text = ""
         if items:
             product_details = []
-            for item in items[:8]:  # Limit to 8 items for clarity
+            for item in items[:8]:  # Limit to 8 items 
                 detail = f"Product: {item.item_name}, Price: ${item.item_price}"
                 if hasattr(item, 'item_description') and item.item_description:
                     # Add description if available and not empty
@@ -327,7 +326,7 @@ def ask_question():
                 answer = answer.replace('}', '')
                 answer = answer.replace('```', '')
                 
-                # Double-check we're not returning empty responses
+                # check we're not returning empty responses
                 if not answer.strip():
                     # Generate a basic fallback response using actual database content
                     fallback = "I'm sorry, I couldn't generate a specific response. "

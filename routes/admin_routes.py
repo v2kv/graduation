@@ -279,13 +279,11 @@ def edit_item(item_id):
 def delete_item(item_id):
     item = Item.query.get_or_404(item_id)
 
-    # Delete associated images from the file system and the database
     for image in item.images:
-        delete_image(image.image_url)  # Remove the image from the file system
-        db.session.delete(image)  # Explicitly delete the image from the database
+        delete_image(image.image_url) 
+        db.session.delete(image)
         reset_auto_increment(db, 'product_images', 'image_id')
 
-    # Delete the item from the database
     db.session.delete(item)
     db.session.commit()
     reset_auto_increment(db, 'items', 'item_id')
@@ -314,7 +312,6 @@ def manage_tags():
 def delete_tag(tag_id):
     tag = Tag.query.get_or_404(tag_id)
     
-    # Check if the tag is used by any items
     if tag.items:
         item_count = len(tag.items)
         flash(f"Cannot delete the tag. It is used by {item_count} item(s).", 'danger')
