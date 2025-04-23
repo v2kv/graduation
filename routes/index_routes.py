@@ -119,11 +119,9 @@ def filter_by_category(category_slug):
         print("Category not found!") 
         return "Category not found", 404
 
-    # ✅ Fetch subcategories
     all_subcategories = get_all_subcategories(selected_category)
     category_ids = [selected_category.category_id] + [sub.category_id for sub in all_subcategories]
 
-    # ✅ Fetch items belonging to this category or subcategories
     items = Item.query.filter(Item.category_id.in_(category_ids)).options(joinedload(Item.images)).all()
 
     return render_template('category.html', items=items, category=selected_category, show_footer=True)
@@ -294,7 +292,7 @@ def ask_question():
         
         Customer question: {question}"""
 
-        # API call with timeout and error handling
+        # API call with the Llama 4 Maverick model
         try:
             response = requests.post(
                 url="https://openrouter.ai/api/v1/chat/completions",
@@ -305,7 +303,7 @@ def ask_question():
                     "X-Title": "Souq Khana"
                 },
                 json={
-                    "model": "deepseek/deepseek-r1-zero:free",
+                    "model": "meta-llama/llama-4-maverick:free", 
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.7,
                     "max_tokens": 300
@@ -322,11 +320,11 @@ def ask_question():
                 answer = response_data['choices'][0]['message']['content']
                 
                 # Clean up answer - remove unwanted formatting
-                answer = answer.replace('\\boxed{', '')
-                answer = answer.replace('}', '')
                 answer = answer.replace('```', '')
+                answer = answer.replace('boxed{', '')
+                answer = answer.replace('}', '')
                 
-                # check we're not returning empty responses
+                # Check we're not returning empty responses
                 if not answer.strip():
                     # Generate a basic fallback response using actual database content
                     fallback = "I'm sorry, I couldn't generate a specific response. "
