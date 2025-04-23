@@ -219,13 +219,22 @@ def ask_question():
         - For generic questions about what we sell, mention our main categories and highlight some popular products.
         - For budget questions, recommend products that fit within their budget.
         
+        CRITICAL FORMAT INSTRUCTIONS:
+        - NEVER respond with JSON format
+        - ALWAYS respond with plain text
+        - NEVER use code blocks or special formatting
+        - DO NOT wrap your response in quotes or any other delimiters
+        - Just provide a simple, direct conversational response
+        
         Here is information about all products in our store:
         {product_info_text}
         
         Here is information about our product categories:
         {category_info_text}
         
-        Customer question: {question}"""
+        Customer question: {question}
+        
+        Remember to respond with PLAIN TEXT ONLY, not JSON or any other format."""
 
         # API call with the Llama 4 Maverick model
         try:
@@ -241,7 +250,8 @@ def ask_question():
                     "model": "meta-llama/llama-4-maverick:free",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.7,
-                    "max_tokens": 300
+                    "max_tokens": 300,
+                    "response_format": {"type": "text"} 
                 },
                 timeout=15 
             )
@@ -249,42 +259,58 @@ def ask_question():
             # Check response status
             response.raise_for_status()
             
-            # Parse JSON and get the answer
-            response_data = response.json()
-            if 'choices' in response_data and len(response_data['choices']) > 0:
-                answer = response_data['choices'][0]['message']['content']
+            # Parse JSON and get the answer with much better error handling
+            try:
+                response_data = response.json()
                 
-                # Clean up answer - remove unwanted formatting
-                answer = answer.replace('```', '')
-                
-                # Check we're not returning empty responses
-                if not answer.strip():
-                    # Generate a basic fallback response
-                    fallback = "I'm sorry, I couldn't generate a specific response. "
+                if 'choices' in response_data and len(response_data['choices']) > 0:
+                    answer = response_data['choices'][0]['message']['content']
                     
-                    if all_categories:
-                        category_names = [cat.category_name for cat in all_categories]
-                        fallback += f"At Souq Khana, we offer products in these categories: {', '.join(category_names)}. "
+                    # Extensive cleanup to remove any JSON or markup
+                    # Remove code blocks
+                    answer = re.sub(r'```(?:json)?(.*?)```', r'\1', answer, flags=re.DOTALL)
                     
-                    if all_items:
-                        fallback += f"Some of our products include {', '.join([item.item_name for item in all_items[:5]])}. "
-                        
-                    fallback += "How can I help you find something specific today?"
-                    return jsonify({'answer': fallback}), 200
+                    # Remove any JSON formatting attempts
+                    answer = re.sub(r'^\s*\{\s*".*?"\s*:.*?\}.*?$', '', answer, flags=re.MULTILINE | re.DOTALL)
+                    answer = re.sub(r'^\s*\[\s*\{.*?\}\s*\].*?$', '', answer, flags=re.MULTILINE | re.DOTALL)
                     
-                return jsonify({'answer': answer}), 200
-            else:
-                current_app.logger.error(f"Unexpected API response structure: {response_data}")
-                return jsonify({'error': 'Invalid response from AI service'}), 500
+                    # Remove XML/HTML tags
+                    answer = re.sub(r'<.*?>', '', answer)
+                    
+                    # Remove any trailing or leading quotes
+                    answer = answer.strip('"\'')
+                    
+                    # Check if we have a valid response after cleanup
+                    if not answer.strip():
+                        return jsonify({'answer': "I'm sorry, I couldn't provide a specific response about our products. How else can I help you today?"}), 200
+                    
+                    return jsonify({'answer': answer}), 200
+                else:
+                    current_app.logger.error(f"Unexpected API response structure: {response_data}")
+                    return jsonify({'answer': "I'm sorry, I'm having trouble understanding your question. Could you try asking in a different way?"}), 200
+            
+            except Exception as parse_error:
+                current_app.logger.error(f"Failed to parse API response: {str(parse_error)}")
+                # Try to get raw text as fallback
+                try:
+                    raw_text = response.text
+                    # Attempt to extract anything that looks like a message
+                    message_match = re.search(r'"content"\s*:\s*"([^"]+)"', raw_text)
+                    if message_match:
+                        return jsonify({'answer': message_match.group(1)}), 200
+                    else:
+                        return jsonify({'answer': "I apologize, but I'm having technical difficulties. Please try asking again later."}), 200
+                except:
+                    return jsonify({'answer': "I'm sorry, but our AI assistant is currently experiencing issues. Please try again later."}), 200
                 
         except requests.exceptions.Timeout:
             current_app.logger.error("OpenRouter API timeout")
-            return jsonify({'error': 'The service is taking too long to respond. Please try again later.'}), 504
+            return jsonify({'answer': "I'm sorry, our product assistant is taking longer than expected to respond. Please try again with a simpler question."}), 200
             
         except requests.exceptions.RequestException as e:
             current_app.logger.error(f"OpenRouter API Error: {str(e)}")
-            return jsonify({'error': 'Our product assistant is currently unavailable. Please try again later.'}), 503
+            return jsonify({'answer': "I'm sorry, our product assistant is currently unavailable. Please try again later."}), 200
 
     except Exception as e:
-        current_app.logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
+        current_app.logger.error(f"Unexpected error in ask_question: {str(e)}")
+        return jsonify({'answer': "I'm sorry, I encountered an unexpected error. How else can I help you today?"}), 200
