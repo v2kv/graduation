@@ -279,17 +279,26 @@ def edit_item(item_id):
 def delete_item(item_id):
     item = Item.query.get_or_404(item_id)
 
-    for image in item.images:
-        delete_image(image.image_url) 
-        db.session.delete(image)
-        reset_auto_increment(db, 'product_images', 'image_id')
+    try:
+        # Delete product images
+        for image in item.images:
+            delete_image(image.image_url)
+            db.session.delete(image)
 
-    db.session.delete(item)
-    db.session.commit()
-    reset_auto_increment(db, 'items', 'item_id')
+        # Delete related WishlistItems
+        WishlistItem.query.filter_by(item_id=item.item_id).delete()
+        
+        # Delete related CartItems
+        CartItem.query.filter_by(item_id=item.item_id).delete()
 
-    flash('Item deleted successfully', 'success')
-    return redirect(url_for('admin.manage_items'))
+        # Delete the item
+        db.session.delete(item)
+        db.session.commit()
+
+        flash('Item deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting item: {str(e)}', 'danger')
 
 # tags
 @admin_bp.route('/admin/tags', methods=['GET', 'POST'])
