@@ -167,71 +167,16 @@ def ask_question():
         return jsonify({'error': 'No question provided'}), 400
     
     try:
-        # Detect if this is a generic question about what we sell
-        generic_questions = [
-            'what do you sell', 'what products do you have', 'what can i buy', 
-            'what is available', 'what do you offer', 'show me products',
-            'what items', 'list products', 'what categories'
-        ]
-        is_generic_question = any(gen_q in question.lower() for gen_q in generic_questions)
-        
-        # Get database information based on the question
-        try:
-            all_categories = Category.query.all()
-            
-            # Prepare items to search based on question type
-            items = []
-            
-            if is_generic_question:
-                # For generic questions, get a sampling of products across categories
-                # This ensures we have something to show even for broad questions
-                for category in all_categories:
-                    # Get up to 2 items from each category for a good representative sample
-                    category_items = Item.query.filter_by(category_id=category.category_id).limit(2).all()
-                    items.extend(category_items)
-            else:
-                # For specific questions, perform keyword search
-                keywords = [word.strip() for word in question.lower().split() if len(word.strip()) > 2]
-                
-                # Build filters for each keyword
-                item_filters = []
-                for keyword in keywords:
-                    item_filters.append(Item.item_name.ilike(f'%{keyword}%'))
-                    if hasattr(Item, 'item_description'):
-                        item_filters.append(Item.item_description.ilike(f'%{keyword}%'))
-                
-                # Apply filters if we have any
-                if item_filters:
-                    items = Item.query.filter(or_(*item_filters)).all()
-                    
-                    # Log what was found for debugging
-                    current_app.logger.info(f"Search for '{question}' found {len(items)} items")
-                    for item in items[:3]:
-                        current_app.logger.info(f"Match: {item.item_name} (${item.item_price})")
-                
-                # If no items found with keywords, try to find matching categories
-                if not items and keywords:
-                    category_filters = []
-                    for keyword in keywords:
-                        category_filters.append(Category.category_name.ilike(f'%{keyword}%'))
-                    
-                    if category_filters:
-                        matching_categories = Category.query.filter(or_(*category_filters)).all()
-                        
-                        # Get items from matching categories
-                        for category in matching_categories:
-                            category_items = Item.query.filter_by(category_id=category.category_id).limit(5).all()
-                            items.extend(category_items)
-            
-        except Exception as db_error:
-            current_app.logger.error(f"Database error: {str(db_error)}")
-            return jsonify({'error': 'Unable to search products. Please try again.'}), 500
+        # Get ALL categories and items
+        all_categories = Category.query.all()
+        all_items = Item.query.all()
         
         # Prepare product information for the AI prompt
         product_info_text = ""
-        if items:
+        if all_items:
             product_details = []
-            for item in items[:8]:  # Limit to 8 items 
+            # Include ALL products
+            for item in all_items:
                 detail = f"Product: {item.item_name}, Price: ${item.item_price}"
                 if hasattr(item, 'item_description') and item.item_description:
                     # Add description if available and not empty
@@ -249,23 +194,15 @@ def ask_question():
             
             product_info_text = "\n".join(product_details)
         else:
-            product_info_text = "No specific products found matching the query."
+            product_info_text = "No products found in the database."
         
         # Prepare category information
         category_info = []
         
-        # For all questions, include available categories
+        # Include ALL categories
         if all_categories:
             category_names = [cat.category_name for cat in all_categories]
             category_info.append(f"Available categories: {', '.join(category_names)}")
-        
-        # For generic questions or if no specific products found, add sample items per category
-        if is_generic_question or not items:
-            for category in all_categories:
-                sample_items = Item.query.filter_by(category_id=category.category_id).limit(3).all()
-                if sample_items:
-                    item_names = [item.item_name for item in sample_items]
-                    category_info.append(f"Category '{category.category_name}' includes: {', '.join(item_names)}")
         
         category_info_text = "\n".join(category_info) if category_info else "No categories found in the database."
 
@@ -275,16 +212,14 @@ def ask_question():
         IMPORTANT INSTRUCTIONS:
         - Respond in a conversational, helpful tone like a retail assistant would.
         - Be brief but engaging - keep responses under 3 sentences when possible.
-        - NEVER use any kind of Markdown formatting in your responses.
-        - Format your response as plain text only.
         - When mentioning prices, always include the dollar sign ($).
         - ONLY mention products or categories that are explicitly listed in the information below.
         - DO NOT make up any products or categories that aren't provided in the information.
-        - If the product information section says "No specific products found", clearly state we don't currently have that item.
         - Address customers directly using "you" and refer to the store as "we" or "Souq Khana".
         - For generic questions about what we sell, mention our main categories and highlight some popular products.
+        - For budget questions, recommend products that fit within their budget.
         
-        Here is information about products that might match the customer's query:
+        Here is information about all products in our store:
         {product_info_text}
         
         Here is information about our product categories:
@@ -303,7 +238,7 @@ def ask_question():
                     "X-Title": "Souq Khana"
                 },
                 json={
-                    "model": "meta-llama/llama-4-maverick:free", 
+                    "model": "meta-llama/llama-4-maverick:free",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.7,
                     "max_tokens": 300
@@ -321,20 +256,18 @@ def ask_question():
                 
                 # Clean up answer - remove unwanted formatting
                 answer = answer.replace('```', '')
-                answer = answer.replace('boxed{', '')
-                answer = answer.replace('}', '')
                 
                 # Check we're not returning empty responses
                 if not answer.strip():
-                    # Generate a basic fallback response using actual database content
+                    # Generate a basic fallback response
                     fallback = "I'm sorry, I couldn't generate a specific response. "
                     
                     if all_categories:
                         category_names = [cat.category_name for cat in all_categories]
                         fallback += f"At Souq Khana, we offer products in these categories: {', '.join(category_names)}. "
                     
-                    if items:
-                        fallback += f"Some of our products include {', '.join([item.item_name for item in items[:5]])}. "
+                    if all_items:
+                        fallback += f"Some of our products include {', '.join([item.item_name for item in all_items[:5]])}. "
                         
                     fallback += "How can I help you find something specific today?"
                     return jsonify({'answer': fallback}), 200
