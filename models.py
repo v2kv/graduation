@@ -64,8 +64,8 @@ class PaymentMethod(db.Model):
     last_four_digits = db.Column(db.String(4), nullable=False)
     expiry_month = db.Column(db.Integer, nullable=False)
     expiry_year = db.Column(db.SmallInteger, nullable=False)
-    stripe_payment_method_id = db.Column(db.String(255), nullable=False)  # PaymentMethod ID from Stripe
-    is_default = db.Column(db.Boolean, nullable=False, default=False)  # Track default payment method
+    stripe_payment_method_id = db.Column(db.String(255), nullable=False)  
+    is_default = db.Column(db.Boolean, nullable=False, default=False)  
     created_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp())
     updated_at = db.Column(db.TIMESTAMP, nullable=False, server_default=db.func.current_timestamp(),
                            onupdate=db.func.current_timestamp())
@@ -167,7 +167,6 @@ class WishlistItem(db.Model):
     item = db.relationship('Item')
  
 
-# models.py (updated Order class)
 class Order(db.Model):
     __tablename__ = 'orders'
     order_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
