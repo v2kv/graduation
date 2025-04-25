@@ -14,7 +14,7 @@ def index():
             category_tree[parent_id] = []
         category_tree[parent_id].append(category)
 
-    items = Item.query.options(joinedload(Item.images)).order_by(Item.item_name.asc()).all()
+    items = Item.query.options(joinedload(Item.images)).all()
     
     tags = Tag.query.all()
 
