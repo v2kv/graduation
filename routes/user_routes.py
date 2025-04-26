@@ -288,15 +288,11 @@ def add_address():
     if request.method == 'POST':
         address_line = request.form['address_line']
         city = request.form['city']
-        country = "Iraq"  # Set country to Iraq
-        phone_number = request.form['phone_number'].strip()  # Remove spaces
+        country = "Iraq"  
+        phone_number = request.form['phone_number'].strip() 
         governorate = request.form.get('governorate')
-        is_default = 'is_default' in request.form  # Check if the checkbox is checked
+        is_default = 'is_default' in request.form 
 
-        # Debugging: Log the phone number input
-        print(f"DEBUG: Phone Number Input: '{phone_number}'")
-
-        # Ensure phone number contains only digits and has a length of 11
         if not phone_number.isdigit() or len(phone_number) != 11:
             flash("Phone number must contain exactly 11 numeric digits.", "danger")
             return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
@@ -307,7 +303,6 @@ def add_address():
             flash("Invalid phone number format for Iraq. Use format: 07XXXXXXXXX (11 digits).", "danger")
             return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
 
-        # Handle governorate for Iraq
         if not governorate:
             flash("Governorate is required for Iraq.", "danger")
             return render_template('user/add_address.html', governorates=IRAQ_GOVERNORATES)
@@ -348,7 +343,6 @@ def add_address():
 def edit_address(address_id):
     address = Address.query.get_or_404(address_id)
 
-    # Ensure the user owns the address
     if address.user_id != current_user.user_id:
         flash("Unauthorized access.", "danger")
         return redirect(url_for('user.user_dashboard'))
@@ -356,35 +350,27 @@ def edit_address(address_id):
     if request.method == 'POST':
         address_line = request.form['address_line']
         city = request.form['city']
-        country = "Iraq"  # Set country to Iraq
+        country = "Iraq" 
         phone_number = request.form['phone_number'].strip()  # Remove spaces
         governorate = request.form.get('governorate')
         is_default = 'is_default' in request.form
 
-        # Debugging: Log the phone number input
-        print(f"DEBUG: Phone Number Input: '{phone_number}'")
-
-        # Ensure phone number contains only digits and has a length of 11
         if not phone_number.isdigit() or len(phone_number) != 11:
             flash("Phone number must contain exactly 11 numeric digits.", "danger")
             return render_template('user/edit_address.html', address=address, governorates=IRAQ_GOVERNORATES)
 
-        # Validate phone number for Iraq
-        iraq_phone_pattern = r"^07\d{9}$"  # Matches exactly 07XXXXXXXXX (11 digits)
+        iraq_phone_pattern = r"^07\d{9}$" 
         if not re.match(iraq_phone_pattern, phone_number):
             flash("Invalid phone number format for Iraq. Use format: 07XXXXXXXXX (11 digits).", "danger")
             return render_template('user/edit_address.html', address=address, governorates=IRAQ_GOVERNORATES)
 
-        # Handle governorate for Iraq
         if not governorate:
             flash("Governorate is required for Iraq.", "danger")
             return render_template('user/edit_address.html', address=address, governorates=IRAQ_GOVERNORATES)
 
-        # Unset default for other addresses if this is set as default
         if is_default:
             Address.query.filter_by(user_id=current_user.user_id, is_default=True).update({'is_default': False})
 
-        # Update address fields
         address.address_line = address_line
         address.city = city
         address.governorate = governorate
@@ -413,10 +399,8 @@ def set_default_address(address_id):
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('user.user_dashboard'))
 
-    # Unset other default addresses
     Address.query.filter_by(user_id=current_user.user_id, is_default=True).update({'is_default': False})
 
-    # Set the selected address as default
     address.is_default = True
     db.session.commit()
 
@@ -428,12 +412,10 @@ def set_default_address(address_id):
 def delete_address(address_id):
     address = Address.query.get_or_404(address_id)
 
-    # Ensure the user owns the address
     if address.user_id != current_user.user_id:
         flash("Unauthorized access.", "danger")
         return redirect(url_for('user.user_dashboard'))
 
-    # Prevent deletion of the default address
     if address.is_default:
         flash("Default address cannot be deleted. Please set another address as default first.", "danger")
         return redirect(url_for('user.user_dashboard'))

@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // Add event listeners for update-quantity buttons
   document.querySelectorAll(".update-quantity").forEach((button) => {
     button.addEventListener("click", function () {
       const cartItemId = this.dataset.cartItemId;
@@ -35,12 +34,10 @@ document.addEventListener("DOMContentLoaded", function() {
       })
         .then((response) => response.json())
         .then((data) => {
-          // Ensure data contains the expected properties
           if (!data.quantity || !data.total_price || !data.cart_total) {
             throw new Error("Invalid response data");
           }
 
-          // Parse `total_price` and `cart_total` to ensure they are numbers
           const totalPrice = parseFloat(data.total_price);
           const cartTotal = parseFloat(data.cart_total);
 
@@ -53,10 +50,8 @@ document.addEventListener("DOMContentLoaded", function() {
           cartBox.querySelector(".quantity").textContent = data.quantity;
           cartBox.querySelector(".carttotal" + cartItemId).textContent = `$${totalPrice.toFixed(2)}`;
           
-          // Update overall cart total
           updateCartTotal(cartTotal);
           
-          // Update badge count
           document.getElementById("cart-badge").textContent = getCartItemCount();
         })
         .catch((error) => {
@@ -65,25 +60,20 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   });
 
-  // Attach event listeners to remove buttons
   document.querySelectorAll(".remove-from-cart").forEach((button) => {
     button.addEventListener("click", function () {
       const cartItemId = this.dataset.cartItemId;
-      removeCartItem(cartItemId); // Remove the item from the cart
+      removeCartItem(cartItemId); 
     });
   });
   
-  // Setup add to cart buttons on product cards
   setupAddToCartButtons();
 
-  // Setup add to wishlist buttons
   setupAddToWishlistButtons();
   
-  // Setup mobile touch support
   setupMobileTouchSupport();
 });
 
-// Get total count of items in cart
 function getCartItemCount() {
   let count = 0;
   document.querySelectorAll('.cart-box .quantity').forEach(quantityEl => {
@@ -92,7 +82,6 @@ function getCartItemCount() {
   return count;
 }
 
-// Function to remove item from cart using AJAX
 function removeCartItem(cartItemId) {
   fetch(`/cart/remove/${cartItemId}`, {
     method: "POST",
@@ -101,7 +90,6 @@ function removeCartItem(cartItemId) {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      // Remove the specific cart item from the DOM
       const cartItemElement = document.querySelector(`[data-cart-item-id="${cartItemId}"]`).closest(".cart-box");
       if (cartItemElement) {
         cartItemElement.remove();
@@ -109,7 +97,6 @@ function removeCartItem(cartItemId) {
       
       updateCartTotal(data.cart_total);
       
-      // Update badge count
       document.getElementById("cart-badge").textContent = data.cart_count;
     
       if (data.cart_items.length === 0) {
@@ -123,9 +110,7 @@ function removeCartItem(cartItemId) {
   .catch(error => console.error("Error removing item:", error));
 }
 
-// Function to update total price
 function updateCartTotal(newTotal) {
-  // Ensure newTotal is a number and format it properly
   const total = parseFloat(newTotal);
   const totalPriceElement = document.querySelector(".total-price");
   
@@ -141,11 +126,9 @@ function showBuyNowIcon() {
   document.getElementById("dnone").style.display = "block";
   
 }
-// Set up add to cart buttons on product cards
 function setupAddToCartButtons() {
   document.querySelectorAll(".add-to-cart").forEach((button) => {
     
-    // Store original text for later
     if (!button.getAttribute('data-original-text')) {
       button.setAttribute('data-original-text', button.innerHTML);
     }
@@ -153,7 +136,6 @@ function setupAddToCartButtons() {
     button.addEventListener("click", function (e) {
       e.preventDefault();
       
-      // Skip if button is already processing
       if (this.disabled) return;
       
       const itemId = this.dataset.itemId;
@@ -162,10 +144,8 @@ function setupAddToCartButtons() {
   });
 }
 
-// Set up add to wishlist buttons
 function setupAddToWishlistButtons() {
   document.querySelectorAll(".add-to-wishlist").forEach((button) => {
-    // Store original text for later
     if (!button.getAttribute('data-original-text')) {
       button.setAttribute('data-original-text', button.innerHTML);
     }
@@ -173,7 +153,6 @@ function setupAddToWishlistButtons() {
     button.addEventListener("click", function (e) {
       e.preventDefault();
       
-      // Skip if button is already processing
       if (this.disabled) return;
       
       const itemId = this.dataset.itemId;
@@ -182,7 +161,6 @@ function setupAddToWishlistButtons() {
   });
 }
 
-// Function to add an item to the cart with visual feedback
 function addItemToCart(itemId, buttonElement) {
   // Store original text (might be emoji on mobile)
   const originalText = buttonElement.innerHTML;
@@ -194,12 +172,17 @@ function addItemToCart(itemId, buttonElement) {
   
   fetch(`/cart/add/${itemId}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" }
+    headers: { 
+      "Content-Type": "application/json",
+      'X-Requested-With': 'XMLHttpRequest'
+    }
   })
   .then(response => {
     if (!response.ok) {
       if (response.status === 401) {
-        throw new Error('Please login to add items to your cart');
+        // Redirect to login page for unauthorized users
+        window.location.href = '/user/login';
+        throw new Error('redirect');
       }
       throw new Error('Network response was not ok');
     }
@@ -207,18 +190,12 @@ function addItemToCart(itemId, buttonElement) {
   })
   .then(data => {
     if (data.success) {
-      // Update the UI
       if (document.getElementById("cart-badge")) {
         document.getElementById("cart-badge").textContent = data.cart_count;
       }
       
-      // Show success feedback
       buttonElement.innerHTML = '<i class="fa fa-check"></i>';
       
-      // Show notification
-      showNotification("Item added to cart!", "success");
-      
-      // Refresh cart content
       refreshCartContent();
     } else {
       throw new Error(data.error || "Failed to add item to cart");
@@ -226,27 +203,23 @@ function addItemToCart(itemId, buttonElement) {
   })
   .catch(error => {
     console.error("Error adding to cart:", error);
-    buttonElement.innerHTML = '<i class="fa fa-times"></i>';
     
-    // Check if login required
-    if (error.message.includes('login')) {
-      showNotification("Please login to add items to your cart", "warning");
-    } else {
-      showNotification("Error adding item to cart", "danger");
-    }
+    if (error.message === 'redirect') return;
+    
+    buttonElement.innerHTML = '<i class="fa fa-times"></i>';
+    showNotification("Error adding item to cart", "danger");
   })
   .finally(() => {
-    // Always reset button after a delay
-    setTimeout(() => {
-      buttonElement.innerHTML = originalText;
-      buttonElement.disabled = false;
-    }, 1500);
+    if (buttonElement) {
+      setTimeout(() => {
+        buttonElement.innerHTML = originalText;
+        buttonElement.disabled = false;
+      }, 1500);
+    }
   });
 }
 
-// Function to add an item to the wishlist
 function addItemToWishlist(itemId, buttonElement) {
-  // Store original text (might be emoji on mobile)
   const originalText = buttonElement.innerHTML;
   
   buttonElement.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
@@ -271,12 +244,10 @@ function addItemToWishlist(itemId, buttonElement) {
     if (data.success) {
       buttonElement.innerHTML = '<i class="fa fa-check"></i>';
       
-      // Update badge count
       if (document.getElementById("wishlist-badge")) {
         document.getElementById("wishlist-badge").textContent = data.wishlist_count;
       }
       
-      showNotification("Item added to wishlist!", "success");
     } else {
       throw new Error(data.error || "Failed to add to wishlist");
     }
@@ -285,7 +256,6 @@ function addItemToWishlist(itemId, buttonElement) {
     console.error("Error adding to wishlist:", error);
     buttonElement.innerHTML = '<i class="fa fa-times"></i>';
     
-    // Check if login required
     if (error.message.includes('login')) {
       showNotification("Please login to add items to your wishlist", "warning");
     } else {
@@ -293,7 +263,6 @@ function addItemToWishlist(itemId, buttonElement) {
     }
   })
   .finally(() => {
-    // Always reset button after a delay
     setTimeout(() => {
       buttonElement.innerHTML = originalText;
       buttonElement.disabled = false;
@@ -315,13 +284,11 @@ function refreshCartContent() {
         document.querySelector('.cart-content').innerHTML = newCartContent.innerHTML;
       }
       
-      // Extract cart total
       const newTotalPrice = doc.querySelector('.total-price');
       if (newTotalPrice) {
         document.querySelector('.total-price').textContent = newTotalPrice.textContent;
       }
       
-      // Re-attach event listeners to the new cart items
       document.querySelectorAll(".update-quantity").forEach((button) => {
         button.addEventListener("click", function() {
           const cartItemId = this.dataset.cartItemId;
@@ -334,7 +301,6 @@ function refreshCartContent() {
           })
             .then(response => response.json())
             .then(data => {
-              // Update UI with the new data
               const cartBox = this.closest(".cart-box");
               cartBox.querySelector(".quantity").textContent = data.quantity;
               cartBox.querySelector(".carttotal" + cartItemId).textContent = `$${parseFloat(data.total_price).toFixed(2)}`;
@@ -354,7 +320,6 @@ function refreshCartContent() {
     .catch(error => console.error("Error refreshing cart:", error));
 }
 
-// Show notification
 function showNotification(message, type) {
   const notification = document.createElement('div');
   notification.className = `alert alert-${type} alert-dismissiblefade show notification-toast`;
@@ -371,7 +336,6 @@ function showNotification(message, type) {
   
   document.body.appendChild(notification);
   
-  // Auto dismiss after 3 seconds
   setTimeout(() => {
     notification.classList.remove('show');
     setTimeout(() => {
@@ -412,7 +376,6 @@ function updateCounters() {
 
 // Mobile touch support for product cards
 function setupMobileTouchSupport() {
-  // Detect if we're on a mobile device
   const isMobile = window.matchMedia("(max-width: 576px)").matches;
   
   if (isMobile) {

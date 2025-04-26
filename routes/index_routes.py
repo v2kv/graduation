@@ -14,7 +14,7 @@ def index():
             category_tree[parent_id] = []
         category_tree[parent_id].append(category)
 
-    items = Item.query.options(joinedload(Item.images)).order_by(Item.item_name.asc()).all()
+    items = Item.query.options(joinedload(Item.images)).all()
     
     tags = Tag.query.all()
 
@@ -119,11 +119,9 @@ def filter_by_category(category_slug):
         print("Category not found!") 
         return "Category not found", 404
 
-    # ✅ Fetch subcategories
     all_subcategories = get_all_subcategories(selected_category)
     category_ids = [selected_category.category_id] + [sub.category_id for sub in all_subcategories]
 
-    # ✅ Fetch items belonging to this category or subcategories
     items = Item.query.filter(Item.category_id.in_(category_ids)).options(joinedload(Item.images)).all()
 
     return render_template('category.html', items=items, category=selected_category, show_footer=True)
@@ -169,72 +167,16 @@ def ask_question():
         return jsonify({'error': 'No question provided'}), 400
     
     try:
-        # Detect if this is a generic question about what we sell
-        generic_questions = [
-            'what do you sell', 'what products do you have', 'what can i buy', 
-            'what is available', 'what do you offer', 'show me products',
-            'what items', 'list products', 'what categories'
-        ]
-        is_generic_question = any(gen_q in question.lower() for gen_q in generic_questions)
-        
-        # Get database information based on the question
-        try:
-            # Get all categories regardless of question type for context
-            all_categories = Category.query.all()
-            
-            # Prepare items to search based on question type
-            items = []
-            
-            if is_generic_question:
-                # For generic questions, get a sampling of products across categories
-                # This ensures we have something to show even for broad questions
-                for category in all_categories:
-                    # Get up to 2 items from each category for a good representative sample
-                    category_items = Item.query.filter_by(category_id=category.category_id).limit(2).all()
-                    items.extend(category_items)
-            else:
-                # For specific questions, perform keyword search
-                keywords = [word.strip() for word in question.lower().split() if len(word.strip()) > 2]
-                
-                # Build filters for each keyword
-                item_filters = []
-                for keyword in keywords:
-                    item_filters.append(Item.item_name.ilike(f'%{keyword}%'))
-                    if hasattr(Item, 'item_description'):
-                        item_filters.append(Item.item_description.ilike(f'%{keyword}%'))
-                
-                # Apply filters if we have any
-                if item_filters:
-                    items = Item.query.filter(or_(*item_filters)).all()
-                    
-                    # Log what was found for debugging
-                    current_app.logger.info(f"Search for '{question}' found {len(items)} items")
-                    for item in items[:3]:
-                        current_app.logger.info(f"Match: {item.item_name} (${item.item_price})")
-                
-                # If no items found with keywords, try to find matching categories
-                if not items and keywords:
-                    category_filters = []
-                    for keyword in keywords:
-                        category_filters.append(Category.category_name.ilike(f'%{keyword}%'))
-                    
-                    if category_filters:
-                        matching_categories = Category.query.filter(or_(*category_filters)).all()
-                        
-                        # Get items from matching categories
-                        for category in matching_categories:
-                            category_items = Item.query.filter_by(category_id=category.category_id).limit(5).all()
-                            items.extend(category_items)
-            
-        except Exception as db_error:
-            current_app.logger.error(f"Database error: {str(db_error)}")
-            return jsonify({'error': 'Unable to search products. Please try again.'}), 500
+        # Get ALL categories and items
+        all_categories = Category.query.all()
+        all_items = Item.query.all()
         
         # Prepare product information for the AI prompt
         product_info_text = ""
-        if items:
+        if all_items:
             product_details = []
-            for item in items[:8]:  # Limit to 8 items for clarity
+            # Include ALL products
+            for item in all_items:
                 detail = f"Product: {item.item_name}, Price: ${item.item_price}"
                 if hasattr(item, 'item_description') and item.item_description:
                     # Add description if available and not empty
@@ -252,23 +194,15 @@ def ask_question():
             
             product_info_text = "\n".join(product_details)
         else:
-            product_info_text = "No specific products found matching the query."
+            product_info_text = "No products found in the database."
         
         # Prepare category information
         category_info = []
         
-        # For all questions, include available categories
+        # Include ALL categories
         if all_categories:
             category_names = [cat.category_name for cat in all_categories]
             category_info.append(f"Available categories: {', '.join(category_names)}")
-        
-        # For generic questions or if no specific products found, add sample items per category
-        if is_generic_question or not items:
-            for category in all_categories:
-                sample_items = Item.query.filter_by(category_id=category.category_id).limit(3).all()
-                if sample_items:
-                    item_names = [item.item_name for item in sample_items]
-                    category_info.append(f"Category '{category.category_name}' includes: {', '.join(item_names)}")
         
         category_info_text = "\n".join(category_info) if category_info else "No categories found in the database."
 
@@ -278,24 +212,31 @@ def ask_question():
         IMPORTANT INSTRUCTIONS:
         - Respond in a conversational, helpful tone like a retail assistant would.
         - Be brief but engaging - keep responses under 3 sentences when possible.
-        - NEVER use any kind of Markdown formatting in your responses.
-        - Format your response as plain text only.
         - When mentioning prices, always include the dollar sign ($).
         - ONLY mention products or categories that are explicitly listed in the information below.
         - DO NOT make up any products or categories that aren't provided in the information.
-        - If the product information section says "No specific products found", clearly state we don't currently have that item.
         - Address customers directly using "you" and refer to the store as "we" or "Souq Khana".
         - For generic questions about what we sell, mention our main categories and highlight some popular products.
+        - For budget questions, recommend products that fit within their budget.
         
-        Here is information about products that might match the customer's query:
+        CRITICAL FORMAT INSTRUCTIONS:
+        - NEVER respond with JSON format
+        - ALWAYS respond with plain text
+        - NEVER use code blocks or special formatting
+        - DO NOT wrap your response in quotes or any other delimiters
+        - Just provide a simple, direct conversational response
+        
+        Here is information about all products in our store:
         {product_info_text}
         
         Here is information about our product categories:
         {category_info_text}
         
-        Customer question: {question}"""
+        Customer question: {question}
+        
+        Remember to respond with PLAIN TEXT ONLY, not JSON or any other format."""
 
-        # API call with timeout and error handling
+        # API call with the Llama 4 Maverick model
         try:
             response = requests.post(
                 url="https://openrouter.ai/api/v1/chat/completions",
@@ -306,10 +247,11 @@ def ask_question():
                     "X-Title": "Souq Khana"
                 },
                 json={
-                    "model": "deepseek/deepseek-r1-zero:free",
+                    "model": "meta-llama/llama-4-maverick:free",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.7,
-                    "max_tokens": 300
+                    "max_tokens": 300,
+                    "response_format": {"type": "text"} 
                 },
                 timeout=15 
             )
@@ -317,44 +259,58 @@ def ask_question():
             # Check response status
             response.raise_for_status()
             
-            # Parse JSON and get the answer
-            response_data = response.json()
-            if 'choices' in response_data and len(response_data['choices']) > 0:
-                answer = response_data['choices'][0]['message']['content']
+            # Parse JSON and get the answer with much better error handling
+            try:
+                response_data = response.json()
                 
-                # Clean up answer - remove unwanted formatting
-                answer = answer.replace('\\boxed{', '')
-                answer = answer.replace('}', '')
-                answer = answer.replace('```', '')
-                
-                # Double-check we're not returning empty responses
-                if not answer.strip():
-                    # Generate a basic fallback response using actual database content
-                    fallback = "I'm sorry, I couldn't generate a specific response. "
+                if 'choices' in response_data and len(response_data['choices']) > 0:
+                    answer = response_data['choices'][0]['message']['content']
                     
-                    if all_categories:
-                        category_names = [cat.category_name for cat in all_categories]
-                        fallback += f"At Souq Khana, we offer products in these categories: {', '.join(category_names)}. "
+                    # Extensive cleanup to remove any JSON or markup
+                    # Remove code blocks
+                    answer = re.sub(r'```(?:json)?(.*?)```', r'\1', answer, flags=re.DOTALL)
                     
-                    if items:
-                        fallback += f"Some of our products include {', '.join([item.item_name for item in items[:5]])}. "
-                        
-                    fallback += "How can I help you find something specific today?"
-                    return jsonify({'answer': fallback}), 200
+                    # Remove any JSON formatting attempts
+                    answer = re.sub(r'^\s*\{\s*".*?"\s*:.*?\}.*?$', '', answer, flags=re.MULTILINE | re.DOTALL)
+                    answer = re.sub(r'^\s*\[\s*\{.*?\}\s*\].*?$', '', answer, flags=re.MULTILINE | re.DOTALL)
                     
-                return jsonify({'answer': answer}), 200
-            else:
-                current_app.logger.error(f"Unexpected API response structure: {response_data}")
-                return jsonify({'error': 'Invalid response from AI service'}), 500
+                    # Remove XML/HTML tags
+                    answer = re.sub(r'<.*?>', '', answer)
+                    
+                    # Remove any trailing or leading quotes
+                    answer = answer.strip('"\'')
+                    
+                    # Check if we have a valid response after cleanup
+                    if not answer.strip():
+                        return jsonify({'answer': "I'm sorry, I couldn't provide a specific response about our products. How else can I help you today?"}), 200
+                    
+                    return jsonify({'answer': answer}), 200
+                else:
+                    current_app.logger.error(f"Unexpected API response structure: {response_data}")
+                    return jsonify({'answer': "I'm sorry, I'm having trouble understanding your question. Could you try asking in a different way?"}), 200
+            
+            except Exception as parse_error:
+                current_app.logger.error(f"Failed to parse API response: {str(parse_error)}")
+                # Try to get raw text as fallback
+                try:
+                    raw_text = response.text
+                    # Attempt to extract anything that looks like a message
+                    message_match = re.search(r'"content"\s*:\s*"([^"]+)"', raw_text)
+                    if message_match:
+                        return jsonify({'answer': message_match.group(1)}), 200
+                    else:
+                        return jsonify({'answer': "I apologize, but I'm having technical difficulties. Please try asking again later."}), 200
+                except:
+                    return jsonify({'answer': "I'm sorry, but our AI assistant is currently experiencing issues. Please try again later."}), 200
                 
         except requests.exceptions.Timeout:
             current_app.logger.error("OpenRouter API timeout")
-            return jsonify({'error': 'The service is taking too long to respond. Please try again later.'}), 504
+            return jsonify({'answer': "I'm sorry, our product assistant is taking longer than expected to respond. Please try again with a simpler question."}), 200
             
         except requests.exceptions.RequestException as e:
             current_app.logger.error(f"OpenRouter API Error: {str(e)}")
-            return jsonify({'error': 'Our product assistant is currently unavailable. Please try again later.'}), 503
+            return jsonify({'answer': "I'm sorry, our product assistant is currently unavailable. Please try again later."}), 200
 
     except Exception as e:
-        current_app.logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
+        current_app.logger.error(f"Unexpected error in ask_question: {str(e)}")
+        return jsonify({'answer': "I'm sorry, I encountered an unexpected error. How else can I help you today?"}), 200

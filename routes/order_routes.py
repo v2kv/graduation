@@ -6,8 +6,9 @@ order_bp = Blueprint('order', __name__)
 @order_bp.route('/orders')
 @login_required
 def view_orders():
-    orders = Order.query.filter_by(user_id=current_user.user_id).all()
-    return render_template('order_list.html', orders=orders,show_footer=True)
+    orders = Order.query.filter_by(user_id=current_user.user_id).order_by(Order.order_date.desc()).all()
+                
+    return render_template('order_list.html', orders=orders, show_footer=True)
 
 @order_bp.route('/orders/<int:order_id>')
 @login_required
@@ -30,15 +31,12 @@ def checkout():
         address_id = request.form.get('address_id')
         payment_method_id = request.form.get('payment_method_id')
 
-        # Validate the address and payment method
         if not address_id or not payment_method_id:
             flash('Please select both an address and a payment method.', 'danger')
             return redirect(url_for('order.checkout'))
-        # Handle Cash on Delivery
         if payment_method_id == 'cash_on_delivery':
             return process_cash_on_delivery(address_id)
 
-        # Store the selected address and payment method in the session
         session['address_id'] = address_id
         session['payment_method_id'] = payment_method_id
 
@@ -90,7 +88,6 @@ def stripe_checkout_session():
     payment_method_id = session.get('payment_method_id')
 
     try:
-        # Validate address and cart
         address = Address.query.get(address_id)
         if not address or address.user_id != current_user.user_id:
             flash('Invalid shipping address', 'danger')
@@ -104,9 +101,7 @@ def stripe_checkout_session():
         total_amount = sum(item.item.item_price * item.quantity for item in cart.items)
         total_cents = int(total_amount * 100)
 
-        # If using existing payment method
         if payment_method_id and payment_method_id != 'new':
-            # Fetch the correct Stripe payment method ID from the database
             payment_method = PaymentMethod.query.filter_by(
                 payment_id=payment_method_id, 
                 user_id=current_user.user_id
@@ -125,7 +120,11 @@ def stripe_checkout_session():
                     customer=current_user.stripe_customer_id
                 )
 
-                # Mark the payment method as default
+                PaymentMethod.query.filter_by(
+                    user_id=current_user.user_id, 
+                    is_default=True
+                ).update({'is_default': False})
+                
                 payment_method.is_default = True
                 db.session.commit()
 
@@ -146,7 +145,6 @@ def stripe_checkout_session():
                 }
             )
 
-            # Redirect on successful payment
             return redirect(url_for('order.stripe_success', payment_intent_id=payment_intent.id))
 
         # For new payment methods, use Checkout Session
@@ -191,11 +189,9 @@ def stripe_success():
         metadata = None
 
         if payment_intent_id:
-            # Retrieve metadata from PaymentIntent
             payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
             metadata = payment_intent.metadata
         elif session_id:
-            # Retrieve metadata from CheckoutSession
             checkout_session = stripe.checkout.Session.retrieve(session_id)
             metadata = checkout_session.metadata
         else:
