@@ -14,8 +14,6 @@ load_dotenv()  # Load environment variables from .env
 app = Flask(__name__)
 app.config.from_object(Config)
 
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-
 # Initialize extensions
 db.init_app(app)
 login_manager = LoginManager()
